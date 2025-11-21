@@ -17,6 +17,7 @@ services:
     environment:
       TZ: Europe/Berlin
       GIT_ACCESS_TOKEN: ${GITHUB_READ_TOKEN}
+      DOCKER_SWARM_FEATURES: false
       <<: *poll-config  # Uncomment this line to use the poll configuration from above (the `x-poll-config` section).
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
