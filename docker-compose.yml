@@ -7,12 +7,12 @@ x-poll-config: &poll-config
 
 services:
   app:
-    container_name: doco-cd
+    container_name: doco-cddd
     image: ghcr.io/kimdre/doco-cd:latest
     restart: unless-stopped
     ports:
-      - "80:80" # Webhook endpoint
-      - "9120:9120" # Prometheus metrics
+      - "8888:8888" # Webhook endpoint
+      - "9122:9122" # Prometheus metrics
     # For all available environment variables and explanations, see https://github.com/kimdre/doco-cd/wiki/App-Settings
     environment:
       TZ: Europe/Berlin
@@ -24,7 +24,7 @@ services:
       # - ./data:/data
       - data:/data
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/v1/health" ]  # Also change the port here if you change the default HTTP_PORT env var
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/v1/health" ]  # Also change the port here if you change the default HTTP_PORT env var
       start_period: 15s
       interval: 30s
       timeout: 5s
