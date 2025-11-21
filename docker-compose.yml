@@ -1,0 +1,34 @@
+x-poll-config: &poll-config
+ POLL_CONFIG: |
+   - url: https://github.com/EdwinOtten/home-server.git  # This is the repository to poll
+     reference: main  # Optional: specify the branch or tag to poll, defaults to 'main'
+     interval: 180  # Optional: specify the interval in seconds to poll the repository, defaults to 180 seconds (3 minutes)
+     target: ""  # Optional: use to target a specific deployment config file, e.g., "test" -> .doco-cd.test.yaml
+
+services:
+  app:
+    container_name: doco-cd
+    image: ghcr.io/kimdre/doco-cd:latest
+    restart: unless-stopped
+    ports:
+      - "80:80" # Webhook endpoint
+      - "9120:9120" # Prometheus metrics
+    # For all available environment variables and explanations, see https://github.com/kimdre/doco-cd/wiki/App-Settings
+    environment:
+      TZ: Europe/Berlin
+      GIT_ACCESS_TOKEN: ${GITHUB_READ_TOKEN}
+      <<: *poll-config  # Uncomment this line to use the poll configuration from above (the `x-poll-config` section).
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The data volume (left side) can also be replaced with a bind mount to a local directory, for example:
+      # - ./data:/data
+      - data:/data
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/v1/health" ]  # Also change the port here if you change the default HTTP_PORT env var
+      start_period: 15s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  data:
