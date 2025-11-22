@@ -7,7 +7,7 @@ x-poll-config: &poll-config
 
 services:
   app:
-    container_name: doco-cddd
+    container_name: home-server
     image: ghcr.io/kimdre/doco-cd:latest
     restart: unless-stopped
     ports:
