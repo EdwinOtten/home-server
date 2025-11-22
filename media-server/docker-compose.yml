@@ -1,3 +1,6 @@
 services:
-  hello_world:
-    image: hello-world
+  hello-world-api:
+    container_name: hello-world-api
+    image: nmatsui/hello-world-api
+    ports:
+      - "3001:3000"
