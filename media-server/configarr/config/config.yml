@@ -1,0 +1,6 @@
+telemetry: false
+sonarrEnabled: false
+radarrEnabled: false
+whisparrEnabled: false
+readarrEnabled: false
+lidarrEnabled: false
