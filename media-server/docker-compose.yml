@@ -3,4 +3,16 @@ services:
     container_name: hello-world-api
     image: nmatsui/hello-world-api
     ports:
-      - "3002:3000"
+      - "3003:3000"
+  configarr:
+    image: ghcr.io/raydak-labs/configarr:1.17.2
+    container_name: configarr
+    #user: 1000:1000 # Optional, defaults to root:root
+    environment:
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./config:/opt/home-server/media-server/configarr/config # Contains the config.yml and secrets.yml
+      - ./dockerrepos:/opt/configarr-cache # Cache repositories
+      - ./custom/templates:/opt/home-server/media-server/configarr/templates # Optional if custom templates
+      # - ./custom/cfs:/opt/home-server/media-server/configarr/cfs # Optional if custom formats locally provided
+    # restart: "no" # optional make sure this is set to no or removed. Default is no
