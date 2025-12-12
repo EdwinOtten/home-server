@@ -24,7 +24,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # The data volume (left side) can also be replaced with a bind mount to a local directory, for example:
       # - ./data:/data
-      - data:/data
+      - data:/opt/home-server-data
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/v1/health" ]  # Also change the port here if you change the default HTTP_PORT env var
       start_period: 15s
