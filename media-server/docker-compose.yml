@@ -4,10 +4,32 @@ services:
     image: nmatsui/hello-world-api
     ports:
       - "3003:3000"
+
+  # Sonarr is used to query, add downloads to the download queue and index TV shows
+  # https://sonarr.tv/
+  sonarr:
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ${DATA_DIRECTORY}:/data
+      - /opt/sonarr-config:/config
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+#    networks:
+#      yams_network:
+#        ipv4_address: 172.60.0.13
+      
   configarr:
     image: ghcr.io/raydak-labs/configarr:1.17.2
     container_name: configarr
-    #user: 1000:1000 # Optional, defaults to root:root
+    user: ${PUID}:${PGID}
+    depends_on:
+      - sonarr
     environment:
       - TZ=Europe/Amsterdam
     volumes:
@@ -16,3 +38,4 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
       # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
     # restart: "no" # optional make sure this is set to no or removed. Default is no
+
