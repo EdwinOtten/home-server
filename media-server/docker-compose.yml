@@ -11,8 +11,8 @@ services:
     environment:
       - TZ=Europe/Amsterdam
     volumes:
-      - /opt/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
       - /opt/configarr-cache:/app/repos # Cache repositories
-      - /opt/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
-      # - /opt/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
+      # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
     # restart: "no" # optional make sure this is set to no or removed. Default is no
