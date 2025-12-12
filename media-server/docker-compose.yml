@@ -11,11 +11,11 @@ services:
     image: lscr.io/linuxserver/sonarr
     container_name: sonarr
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Amsterdam
     volumes:
-      - ${DATA_DIRECTORY}:/data
+      - /mnt/deadpool/data:/data
       - /opt/sonarr-config:/config
     ports:
       - 8989:8989
@@ -27,7 +27,7 @@ services:
   configarr:
     image: ghcr.io/raydak-labs/configarr:1.17.2
     container_name: configarr
-    user: ${PUID}:${PGID}
+    user: 1000:1000
     depends_on:
       - sonarr
     environment:
