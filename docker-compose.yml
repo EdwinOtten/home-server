@@ -11,7 +11,7 @@ services:
     image: ghcr.io/kimdre/doco-cd:latest
     restart: unless-stopped
     ports:
-      - "8888:8888" # Webhook endpoint
+      # - "8888:8888" # Webhook endpoint
       - "9122:9122" # Prometheus metrics
     # For all available environment variables and explanations, see https://github.com/kimdre/doco-cd/wiki/App-Settings
     environment:
