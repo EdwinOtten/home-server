@@ -14,6 +14,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Amsterdam
+      - SONARR__AUTH__METHOD=Forms
       - SONARR__AUTH__APIKEY=testkeytesttesttesttesttest
       - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
