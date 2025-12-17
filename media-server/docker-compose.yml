@@ -27,6 +27,8 @@ services:
 #    networks:
 #      yams_network:
 #        ipv4_address: 172.60.0.13
+    networks:
+      - media-server-network
 
   configarr:
     image: ghcr.io/raydak-labs/configarr:1.17.2
@@ -42,4 +44,9 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
       # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
     # restart: "no" # optional make sure this is set to no or removed. Default is no
+    networks:
+      - media-server-network
 
+networks:
+  media-server-network:
+    driver: bridge
