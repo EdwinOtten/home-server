@@ -4,3 +4,4 @@ compose_files:
   - docker-compose.yml
 env_files:
   - .env
+force_recreate: true
