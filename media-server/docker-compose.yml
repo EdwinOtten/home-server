@@ -14,6 +14,8 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Amsterdam
+      - SONARR__AUTH__APIKEY=testkey
+      - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
       - /mnt/deadpool/data:/data
       - /opt/sonarr-config:/config
