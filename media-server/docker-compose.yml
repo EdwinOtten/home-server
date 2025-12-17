@@ -5,6 +5,9 @@ services:
     ports:
       - "3004:3000"
 
+# Do prowlarr next :)
+
+
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
   sonarr:
@@ -24,9 +27,6 @@ services:
     ports:
       - 8989:8989
     restart: unless-stopped
-#    networks:
-#      yams_network:
-#        ipv4_address: 172.60.0.13
     networks:
       - media-server-network
 
