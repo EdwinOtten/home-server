@@ -3,7 +3,7 @@ services:
     container_name: hello-world-api
     image: nmatsui/hello-world-api
     ports:
-      - "3003:3000"
+      - "3004:3000"
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
@@ -25,7 +25,7 @@ services:
 #    networks:
 #      yams_network:
 #        ipv4_address: 172.60.0.13
-      
+
   configarr:
     image: ghcr.io/raydak-labs/configarr:1.17.2
     container_name: configarr
