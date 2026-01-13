@@ -1,6 +1,6 @@
 name: media-server
 working_dir: media-server/
-compose_files: 
+compose_files:
   - docker-compose.yml
 env_files:
   - .env
