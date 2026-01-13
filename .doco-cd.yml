@@ -3,6 +3,5 @@ working_dir: media-server/
 compose_files:
   - docker-compose.yml
 env_files:
-  - .env
   - example.env
 force_recreate: true
