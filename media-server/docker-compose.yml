@@ -19,7 +19,7 @@ services:
       - TZ=Europe/Amsterdam
       - SONARR__AUTH__ENABLED=TRUE
       - SONARR__AUTH__METHOD=Forms
-      - SONARR__AUTH__APIKEY=testkeytesttesttesttesttest
+      - SONARR__AUTH__APIKEY=${SONARR_API_KEY}
       - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
       - ${DATA_DIRECTORY}:/data
