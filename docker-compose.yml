@@ -32,3 +32,5 @@ services:
 
 volumes:
   data:
+
+## hint for next time: setup OpenBao external secret provider
