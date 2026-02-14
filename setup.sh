@@ -1,12 +1,20 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-mkdir /opt/home-server-data
-mkdir /opt/configarr-cache
-mkdir /opt/sonarr-config
+# Default values
+USER_NAME="rogs"
+GROUP_NAME="rogs"
 
-chown -R rogs:rogs /opt/home-server-data
-chown -R rogs:rogs /opt/configarr-cache
-chown -R rogs:rogs /opt/sonarr-config
+# Check for command-line arguments
+if [[ ! -z "$1" ]]; then
+    USER_NAME="$1"
+fi
 
-#cp ./media-server/config /opt/media-server-config
+if [[ ! -z "$2" ]]; then
+    GROUP_NAME="$2"
+fi
 
+# Example chown commands
+chown "$USER_NAME:$GROUP_NAME" /path/to/file1
+chown "$USER_NAME:$GROUP_NAME" /path/to/file2
+
+# Additional commands can follow...
