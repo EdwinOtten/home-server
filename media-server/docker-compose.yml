@@ -92,3 +92,11 @@ services:
 networks:
   media-server-network:
     driver: bridge
+
+volumes:
+  media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nolock,rw,soft,nfsvers=4
+      device: ":/downloads
