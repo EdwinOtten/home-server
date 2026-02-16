@@ -17,12 +17,15 @@ fi
 mkdir /opt/home-server-data
 mkdir /opt/configarr-cache
 mkdir /opt/sonarr-config
+mkdir /opt/radarr-config
+mkdir /opt/prowlarr-config
 
 # set owner on config directories
 chown -R "$USER_NAME:$GROUP_NAME" /opt/home-server-data
 chown -R "$USER_NAME:$GROUP_NAME" /opt/configarr-cache
-chown -R "$USER_NAME:$GROUP_NAME" /opt/sonarr-cache
-
+chown -R "$USER_NAME:$GROUP_NAME" /opt/sonarr-config
+chown -R "$USER_NAME:$GROUP_NAME" /opt/radarr-config
+chown -R "$USER_NAME:$GROUP_NAME" /opt/prowlarr-config
 
 # Additional commands can follow...
 #cp ./media-server/config /opt/media-server-config
