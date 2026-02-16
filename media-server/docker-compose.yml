@@ -27,6 +27,28 @@ services:
     networks:
       - media-server-network
 
+  # Radarr is used to query, add downloads to the download queue and index Movies
+  # https://radarr.video/
+  radarr:
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=${PUID?:error}
+      - PGID=${PGID?:error}
+      - TZ=${TZ?:error}
+      - RADARR__AUTH__ENABLED=TRUE
+      - RADARR__AUTH__METHOD=Forms
+      - RADARR__AUTH__APIKEY=${RADARR_API_KEY:?error}
+      - RADARR__AUTH__REQUIRED=DisabledForLocalAddresses
+    volumes:
+      - ${DATA_DIRECTORY:?error}:/data
+      - /opt/radarr-config:/config
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    networks:
+      - media-server-network
+
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   configarr:
     image: ghcr.io/raydak-labs/configarr:1.17.2
@@ -57,6 +79,7 @@ services:
       - PROWLARR__AUTH__ENABLED=TRUE
       - PROWLARR__AUTH__METHOD=Forms
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
+     - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
 #      - /etc/localtime:/etc/localtime:ro
       - /opt/prowlarr-config:/config
