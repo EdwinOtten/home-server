@@ -1,11 +1,11 @@
-# name: media-server
-# working_dir: media-server/
-# compose_files:
-#   - docker-compose.yml
-# force_recreate: true
+ name: media-server
+ working_dir: media-server/
+ compose_files:
+   - docker-compose.yml
+ force_recreate: true
 
-name: nfs-test
-working_dir: nfs-test/
-compose_files:
-  - docker-compose.yml
-force_recreate: true
+#name: nfs-test
+#working_dir: nfs-test/
+#compose_files:
+#  - docker-compose.yml
+#force_recreate: true

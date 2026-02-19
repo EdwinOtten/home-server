@@ -1,9 +1,9 @@
 services:
-  hello-world-api:
-    container_name: hello-world-api
-    image: nmatsui/hello-world-api
-    ports:
-      - "3004:3000"
+#  hello-world-api:
+#    container_name: hello-world-api
+#    image: nmatsui/hello-world-api
+#    ports:
+#      - "3004:3000"
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
@@ -19,8 +19,8 @@ services:
       - SONARR__AUTH__APIKEY=${SONARR_API_KEY:?error}
       - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-      - ${DATA_DIRECTORY:?error}:/data
-      - /opt/sonarr-config:/config
+      - media:/media
+      - sonarr-storage:/config
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -41,8 +41,8 @@ services:
       - RADARR__AUTH__APIKEY=${RADARR_API_KEY:?error}
       - RADARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-      - ${DATA_DIRECTORY:?error}:/data
-      - /opt/radarr-config:/config
+      - media:/media
+      - radarr-storage:/config
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -50,22 +50,22 @@ services:
       - media-server-network
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
-  configarr:
-    image: ghcr.io/raydak-labs/configarr:1.17.2
-    container_name: configarr
-    user: ${PUID?:error}:${PGID?:error}
-    depends_on:
-      - sonarr
-    environment:
-      - TZ=${TZ?:error
-    volumes:
-      - /opt/configarr-cache:/app/repos # Cache repositories
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
-      # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
-    # restart: "no" # optional make sure this is set to no or removed. Default is no
-    networks:
-      - media-server-network
+  #configarr:
+  #  image: ghcr.io/raydak-labs/configarr:1.17.2
+  #  container_name: configarr
+  #  user: ${PUID?:error}:${PGID?:error}
+  #  depends_on:
+  #    - sonarr
+  #  environment:
+  #    - TZ=${TZ?:error}
+  #  volumes:
+  #    - /opt/configarr-cache:/app/repos # Cache repositories
+  #    - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
+  #    - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
+  #    # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+  #  # restart: "no" # optional make sure this is set to no or removed. Default is no
+  #  networks:
+  #    - media-server-network
 
   # Prowlarr is our torrent indexer/searcher. Preolarr pushes indexes to Sonarr/Radarr.
   # https://prowlarr.com/
@@ -82,7 +82,7 @@ services:
      - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
 #      - /etc/localtime:/etc/localtime:ro
-      - /opt/prowlarr-config:/config
+      - prowlarr-storage:/config
     ports:
       - 9696:9696
     restart: unless-stopped
@@ -94,9 +94,44 @@ networks:
     driver: bridge
 
 volumes:
+  old-downloads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nolock,ro,soft,nfsvers=4
+      device: ":/volume1/downloads"
+
   media:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=192.168.1.111,nolock,rw,soft,nfsvers=4
-      device: ":/downloads
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/media"
+
+  sonarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/sonarr"
+
+  radarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/radarr"
+
+  configarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/configarr"
+
+  prowlarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/prowlarr"
