@@ -4,7 +4,6 @@ compose_files:
   - docker-compose.yml
 force_recreate: true
 env_files:
-  - ".env"
   - "example.env"
 
 #name: nfs-test
