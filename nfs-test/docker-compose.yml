@@ -4,7 +4,7 @@ services:
     command: >
       sh -c "echo 'Listing NFS volume contents:' &&
              ls -al /mnt/nfs &&
-             echo 'Done.'
+             echo 'Done.'"
     volumes:
       - nfsdata:/mnt/nfs
     restart: "no"
