@@ -1,0 +1,18 @@
+services:
+  nfs-checker:
+    image: alpine:3.19
+    command: >
+      sh -c "echo 'Listing NFS volume contents:' &&
+             ls -al /mnt/nfs &&
+             echo 'Done.'
+    volumes:
+      - nfsdata:/mnt/nfs
+    restart: "no"
+
+volumes:
+  nfsdata:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/downloads"
