@@ -79,7 +79,7 @@ services:
       - PROWLARR__AUTH__ENABLED=TRUE
       - PROWLARR__AUTH__METHOD=Forms
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
-     - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
+      - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
 #      - /etc/localtime:/etc/localtime:ro
       - prowlarr-storage:/config
