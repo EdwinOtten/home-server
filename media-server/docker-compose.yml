@@ -1,9 +1,7 @@
 services:
-#  hello-world-api:
-#    container_name: hello-world-api
-#    image: nmatsui/hello-world-api
-#    ports:
-#      - "3004:3000"
+
+  # Sabnzbd goes here
+  # qBittorrent goes here
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
@@ -67,6 +65,7 @@ services:
   #  networks:
   #    - media-server-network
 
+
   # Prowlarr is our torrent indexer/searcher. Preolarr pushes indexes to Sonarr/Radarr.
   # https://prowlarr.com/
   prowlarr:
@@ -81,13 +80,25 @@ services:
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-#      - /etc/localtime:/etc/localtime:ro
       - prowlarr-storage:/config
     ports:
       - 19696:9696
     restart: unless-stopped
     networks:
       - media-server-network
+    depends_on:
+      sonarr:
+        condition: service_healthy
+        restart: true
+      radarr:
+        condition: service_healthy
+        restart: true
+
+  # Bazarr goes here
+
+  # Jellyfin goes here
+
+  # Seerr/Jellyseer goes here
 
 networks:
   media-server-network:
