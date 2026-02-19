@@ -23,4 +23,4 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/downloads"
+      device: ":/volume1/media-server-storage"
