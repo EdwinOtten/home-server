@@ -9,7 +9,7 @@ services:
   # https://sonarr.tv/
   sonarr:
     image: lscr.io/linuxserver/sonarr
-    container_name: sonarr
+    container_name: sonarr2
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -22,7 +22,7 @@ services:
       - media:/media
       - sonarr-storage:/config
     ports:
-      - 8989:8989
+      - 18989:8989
     restart: unless-stopped
     networks:
       - media-server-network
@@ -31,7 +31,7 @@ services:
   # https://radarr.video/
   radarr:
     image: lscr.io/linuxserver/radarr
-    container_name: radarr
+    container_name: radarr2
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -44,7 +44,7 @@ services:
       - media:/media
       - radarr-storage:/config
     ports:
-      - 7878:7878
+      - 17878:7878
     restart: unless-stopped
     networks:
       - media-server-network
@@ -71,7 +71,7 @@ services:
   # https://prowlarr.com/
   prowlarr:
     image: lscr.io/linuxserver/prowlarr
-    container_name: prowlarr
+    container_name: prowlarr2
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -84,7 +84,7 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
       - prowlarr-storage:/config
     ports:
-      - 9696:9696
+      - 19696:9696
     restart: unless-stopped
     networks:
       - media-server-network
