@@ -103,13 +103,13 @@ services:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
       - TZ=${TZ?:error}
-      - BAZARR__AUTH__ENABLED=TRUE
-      - BAZARR__AUTH__METHOD=Forms
-      - BAZARR__AUTH__APIKEY=${BAZARR_API_KEY:?error}
-      - BAZARR__AUTH__REQUIRED=DisabledForLocalAddresses
+      - BAZARR_API_KEY=${BAZARR_API_KEY?:error}
     volumes:
       - media:/media
       - bazarr-storage:/config
+      # Mount the init script into the LSIO init directory
+      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
     ports:
       - 16875:6875
     restart: unless-stopped
