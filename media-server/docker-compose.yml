@@ -24,6 +24,12 @@ services:
     restart: unless-stopped
     networks:
       - media-server-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
@@ -46,6 +52,12 @@ services:
     restart: unless-stopped
     networks:
       - media-server-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   #configarr:
@@ -86,6 +98,12 @@ services:
     restart: unless-stopped
     networks:
       - media-server-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9696/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     depends_on:
       sonarr:
         condition: service_healthy
@@ -115,6 +133,19 @@ services:
     restart: unless-stopped
     networks:
       - media-server-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6875/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      sonarr:
+        condition: service_healthy
+        restart: true
+      radarr:
+        condition: service_healthy
+        restart: true
 
   # Jellyfin goes here
 
