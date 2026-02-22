@@ -94,7 +94,27 @@ services:
         condition: service_healthy
         restart: true
 
-  # Bazarr goes here
+  # Bazarr is used to query, add downloads to the download queue and index subtitles
+  # https://www.bazarr.media/
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr2
+    environment:
+      - PUID=${PUID?:error}
+      - PGID=${PGID?:error}
+      - TZ=${TZ?:error}
+      - BAZARR__AUTH__ENABLED=TRUE
+      - BAZARR__AUTH__METHOD=Forms
+      - BAZARR__AUTH__APIKEY=${BAZARR_API_KEY:?error}
+      - BAZARR__AUTH__REQUIRED=DisabledForLocalAddresses
+    volumes:
+      - media:/media
+      - bazarr-storage:/config
+    ports:
+      - 16875:6875
+    restart: unless-stopped
+    networks:
+      - media-server-network
 
   # Jellyfin goes here
 
@@ -146,3 +166,10 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage/services/prowlarr"
+
+  bazarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/bazarr"
