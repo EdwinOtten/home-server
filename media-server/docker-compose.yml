@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   # Sabnzbd goes here
@@ -107,10 +109,8 @@ services:
     depends_on:
       sonarr:
         condition: service_healthy
-        restart: true
       radarr:
         condition: service_healthy
-        restart: true
 
   # Bazarr is used to query, add downloads to the download queue and index subtitles
   # https://www.bazarr.media/
@@ -142,10 +142,8 @@ services:
     depends_on:
       sonarr:
         condition: service_healthy
-        restart: true
       radarr:
         condition: service_healthy
-        restart: true
 
   # Jellyfin goes here
 
