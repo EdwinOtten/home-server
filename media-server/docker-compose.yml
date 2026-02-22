@@ -27,11 +27,11 @@ services:
     networks:
       - media-server-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8989/ping"]
-      interval: 30s
+      test: curl -f http://localhost:8989/api/v3/health?apikey=${SONARR_API_KEY:?error} || exit 1
+      interval: 5m00s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 2
+      start_period: 30s
 
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
@@ -55,11 +55,11 @@ services:
     networks:
       - media-server-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7878/ping"]
-      interval: 30s
+      test: curl -f http://localhost:7878/api/v3/health?apikey=${RADARR_API_KEY:?error} || exit 1
+      interval: 5m00s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 2
+      start_period: 30s
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   #configarr:
