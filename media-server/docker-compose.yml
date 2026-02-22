@@ -94,7 +94,27 @@ services:
         condition: service_healthy
         restart: true
 
-  # Bazarr goes here
+  # Bazarr is used to query, add downloads to the download queue and index subtitles
+  # https://www.bazarr.media/
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr2
+    environment:
+      - PUID=${PUID?:error}
+      - PGID=${PGID?:error}
+      - TZ=${TZ?:error}
+      - BAZARR_API_KEY=${BAZARR_API_KEY?:error}
+    volumes:
+      - media:/media
+      - bazarr-storage:/config
+      # Mount the init script into the LSIO init directory
+      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+    ports:
+      - 16875:6875
+    restart: unless-stopped
+    networks:
+      - media-server-network
 
   # Jellyfin goes here
 
@@ -146,3 +166,10 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage/services/prowlarr"
+
+  bazarr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/bazarr"
