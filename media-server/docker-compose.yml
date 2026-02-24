@@ -99,7 +99,7 @@ services:
     networks:
       - media-server-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9696/"]
+      test: ["CMD-SHELL", "curl -f -H 'X-Api-Key: ${PROWLARR_API_KEY:?error}' http://localhost:9696/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -127,12 +127,12 @@ services:
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
     ports:
-      - 16875:6875
+      - 16767:6767
     restart: unless-stopped
     networks:
       - media-server-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6875/"]
+      test: ["CMD", "curl", "-f", "http://localhost:6767/api/system/status?apikey=${BAZARR_API_KEY:?error}"]
       interval: 30s
       timeout: 10s
       retries: 3
