@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the config path
-CONFIG_FILE="/config/config.yaml"
+CONFIG_FILE="/config/config/config.yaml"
 
 # Check if the BAZARR_API_KEY environment variable is provided
 if [ -n "$BAZARR_API_KEY" ]; then
@@ -25,6 +25,37 @@ if [ -n "$BAZARR_API_KEY" ]; then
             # Append apikey under the auth: line
             sed -i "/^auth:/a \  apikey: $BAZARR_API_KEY" "$CONFIG_FILE"
         fi
+
+
+        # Ensure the 'radarr:' header exists in the file
+        if ! grep -q "^radarr:" "$CONFIG_FILE"; then
+            echo "radarr:" >> "$CONFIG_FILE"
+        fi
+
+        # Check if 'apikey:' already exists under 'radarr:'
+        if grep -q "  apikey:" "$CONFIG_FILE"; then
+            # Update existing key using sed
+            sed -i "s/  apikey:.*/  apikey: $RADARR_API_KEY/" "$CONFIG_FILE"
+        else
+            # Append apikey under the radarr: line
+            sed -i "/^radarr:/a \  apikey: $RADARR_API_KEY" "$CONFIG_FILE"
+        fi
+
+
+        # Ensure the 'sonarr:' header exists in the file
+        if ! grep -q "^sonarr:" "$CONFIG_FILE"; then
+            echo "sonarr:" >> "$CONFIG_FILE"
+        fi
+
+        # Check if 'apikey:' already exists under 'sonarr:'
+        if grep -q "  apikey:" "$CONFIG_FILE"; then
+            # Update existing key using sed
+            sed -i "s/  apikey:.*/  apikey: $SONARR_API_KEY/" "$CONFIG_FILE"
+        else
+            # Append apikey under the sonarr: line
+            sed -i "/^sonarr:/a \  apikey: $SONARR_API_KEY" "$CONFIG_FILE"
+        fi
+
     fi
     
     # Optional: Fix permissions to match LinuxServer PUID/PGID
