@@ -1,66 +1,36 @@
 #!/bin/bash
 
-# Define the config path
 CONFIG_FILE="/config/config/config.yaml"
 
-# Check if the BAZARR_API_KEY environment variable is provided
-if [ -n "$BAZARR_API_KEY" ]; then
-    echo "Updating Bazarr API key in config.yaml..."
+update_section() {
+  SECTION="$1"
+  API_KEY="$2"
 
-    # Create the config file if it doesn't exist
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo "auth:" > "$CONFIG_FILE"
-        echo "  apikey: $BAZARR_API_KEY" >> "$CONFIG_FILE"
-    else
-        # Ensure the 'auth:' header exists in the file
-        if ! grep -q "^auth:" "$CONFIG_FILE"; then
-            echo "auth:" >> "$CONFIG_FILE"
-        fi
+  # Skip if variable is empty
+  [ -z "$API_KEY" ] && return
 
-        # Check if 'apikey:' already exists under 'auth:'
-        if grep -q "  apikey:" "$CONFIG_FILE"; then
-            # Update existing key using sed
-            sed -i "s/  apikey:.*/  apikey: $BAZARR_API_KEY/" "$CONFIG_FILE"
-        else
-            # Append apikey under the auth: line
-            sed -i "/^auth:/a \  apikey: $BAZARR_API_KEY" "$CONFIG_FILE"
-        fi
+  # Create file if missing
+  [ ! -f "$CONFIG_FILE" ] && touch "$CONFIG_FILE"
 
+  # Create section if missing
+  if ! grep -q "^${SECTION}:" "$CONFIG_FILE"; then
+    echo -e "\n${SECTION}:\n  apikey: ${API_KEY}" >> "$CONFIG_FILE"
+    return
+  fi
 
-        # Ensure the 'radarr:' header exists in the file
-        if ! grep -q "^radarr:" "$CONFIG_FILE"; then
-            echo "radarr:" >> "$CONFIG_FILE"
-        fi
+  # If apikey exists inside section → replace it
+  if sed -n "/^${SECTION}:/,/^[^[:space:]]/p" "$CONFIG_FILE" | grep -q "^[[:space:]]*apikey:"; then
+    sed -i "/^${SECTION}:/,/^[^[:space:]]/ s|^[[:space:]]*apikey:.*|  apikey: ${API_KEY}|" "$CONFIG_FILE"
+  else
+    # Insert apikey directly after section header
+    sed -i "/^${SECTION}:/a\  apikey: ${API_KEY}" "$CONFIG_FILE"
+  fi
+}
 
-        # Check if 'apikey:' already exists under 'radarr:'
-        if grep -q "  apikey:" "$CONFIG_FILE"; then
-            # Update existing key using sed
-            sed -i "s/  apikey:.*/  apikey: $RADARR_API_KEY/" "$CONFIG_FILE"
-        else
-            # Append apikey under the radarr: line
-            sed -i "/^radarr:/a \  apikey: $RADARR_API_KEY" "$CONFIG_FILE"
-        fi
+update_section "auth"   "$BAZARR_API_KEY"
+update_section "radarr" "$RADARR_API_KEY"
+update_section "sonarr" "$SONARR_API_KEY"
 
+chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
 
-        # Ensure the 'sonarr:' header exists in the file
-        if ! grep -q "^sonarr:" "$CONFIG_FILE"; then
-            echo "sonarr:" >> "$CONFIG_FILE"
-        fi
-
-        # Check if 'apikey:' already exists under 'sonarr:'
-        if grep -q "  apikey:" "$CONFIG_FILE"; then
-            # Update existing key using sed
-            sed -i "s/  apikey:.*/  apikey: $SONARR_API_KEY/" "$CONFIG_FILE"
-        else
-            # Append apikey under the sonarr: line
-            sed -i "/^sonarr:/a \  apikey: $SONARR_API_KEY" "$CONFIG_FILE"
-        fi
-
-    fi
-    
-    # Optional: Fix permissions to match LinuxServer PUID/PGID
-    chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
-    echo "API key successfully synchronized."
-else
-    echo "BAZARR_API_KEY not set, skipping configuration."
-fi
+echo "API keys synchronized."
