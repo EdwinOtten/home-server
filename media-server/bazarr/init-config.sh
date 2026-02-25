@@ -28,11 +28,14 @@ update_section() {
   fi
 }
 
-update_section "auth"   "apikey" "$BAZARR_API_KEY"
-update_section "radarr" "apikey" "$RADARR_API_KEY"
-update_section "sonarr" "apikey" "$SONARR_API_KEY"
-update_section "radarr" "port" "$RADARR_PORT"
-update_section "sonarr" "port" "$SONARR_PORT"
+update_section "auth"    "apikey" "$BAZARR_API_KEY"
+update_section "general" "use_sonarr" "true"
+update_section "general" "use_radarr" "true"
+
+update_section "radarr"  "apikey" "$RADARR_API_KEY"
+update_section "sonarr"  "apikey" "$SONARR_API_KEY"
+update_section "radarr"  "port"   "$RADARR_PORT"
+update_section "sonarr"  "port"   "$SONARR_PORT"
 
 chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
 
