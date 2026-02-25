@@ -4,32 +4,35 @@ CONFIG_FILE="/config/config/config.yaml"
 
 update_section() {
   SECTION="$1"
-  API_KEY="$2"
+  KEY="$2"
+  VALUE="$3"
 
   # Skip if variable is empty
-  [ -z "$API_KEY" ] && return
+  [ -z "VALUE" ] && return
 
   # Create file if missing
   [ ! -f "$CONFIG_FILE" ] && touch "$CONFIG_FILE"
 
   # Create section if missing
   if ! grep -q "^${SECTION}:" "$CONFIG_FILE"; then
-    echo -e "\n${SECTION}:\n  apikey: ${API_KEY}" >> "$CONFIG_FILE"
+    echo -e "\n${SECTION}:\n  ${KEY}: ${VALUE}" >> "$CONFIG_FILE"
     return
   fi
 
-  # If apikey exists inside section → replace it
-  if sed -n "/^${SECTION}:/,/^[^[:space:]]/p" "$CONFIG_FILE" | grep -q "^[[:space:]]*apikey:"; then
-    sed -i "/^${SECTION}:/,/^[^[:space:]]/ s|^[[:space:]]*apikey:.*|  apikey: ${API_KEY}|" "$CONFIG_FILE"
+  # If key exists inside section → replace it
+  if sed -n "/^${SECTION}:/,/^[^[:space:]]/p" "$CONFIG_FILE" | grep -q "^[[:space:]]*${KEY}:"; then
+    sed -i "/^${SECTION}:/,/^[^[:space:]]/ s|^[[:space:]]*${KEY}:.*|  ${KEY}: ${VALUE}|" "$CONFIG_FILE"
   else
-    # Insert apikey directly after section header
-    sed -i "/^${SECTION}:/a\  apikey: ${API_KEY}" "$CONFIG_FILE"
+    # Insert key-value pair directly after section header
+    sed -i "/^${SECTION}:/a\  ${KEY}: ${VALUE}" "$CONFIG_FILE"
   fi
 }
 
-update_section "auth"   "$BAZARR_API_KEY"
-update_section "radarr" "$RADARR_API_KEY"
-update_section "sonarr" "$SONARR_API_KEY"
+update_section "auth"   "apikey" "$BAZARR_API_KEY"
+update_section "radarr" "apikey" "$RADARR_API_KEY"
+update_section "sonarr" "apikey" "$SONARR_API_KEY"
+update_section "radarr" "port" "$RADARR_PORT"
+update_section "sonarr" "port" "$SONARR_PORT"
 
 chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
 
