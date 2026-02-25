@@ -122,6 +122,8 @@ services:
       - BAZARR_API_KEY=${BAZARR_API_KEY:?error}
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
+      - SONARR_PORT=18989
+      - RADARR_PORT=17878
     volumes:
       - media:/media
       - bazarr-storage:/config
