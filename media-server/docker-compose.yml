@@ -132,7 +132,7 @@ services:
     networks:
       - media-server-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6767/api/system/status?apikey=${BAZARR_API_KEY:?error}"]
+      test: ["CMD-SHELL", "curl -f -H 'X-Api-Key: ${BAZARR_API_KEY:?error}' http://localhost:6767/api/system/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
