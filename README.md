@@ -15,3 +15,4 @@ alias l='ls -lra --color=auto'
    sudo apt install age
    ```
 1. [Install sops](https://github.com/getsops/sops/releases)
+1. Follow [encryption instructions by doco-cd](https://github.com/kimdre/doco-cd/wiki/Encryption)
