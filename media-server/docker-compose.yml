@@ -177,7 +177,29 @@ services:
 
   # Jellyfin goes here
 
-  # Seerr/Jellyseer goes here
+  # Seerr allows users to submit content requests, which are forwarded to 
+  # Radarr/Sonarr after an optional approval.
+  # https://seerr.dev
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=${TZ?:error}
+      - PORT=5055 #optional
+      - API_KEY=${SEERR_API_KEY:?error}
+    ports:
+      - 5055:5055
+    volumes:
+      - seerr-storage:/app/config
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    restart: unless-stopped
 
 networks:
   media-server-network:
@@ -239,3 +261,10 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage/services/bazarr"
+
+  seerr-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage/services/seerr"
