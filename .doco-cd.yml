@@ -9,7 +9,6 @@ destroy_opts:
   remove_images: true
   remove_dir: true
 env_files:
-#  - example.env
   - .enc.env
 
 #name: nfs-test
