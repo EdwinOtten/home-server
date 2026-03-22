@@ -224,6 +224,12 @@ services:
     restart: 'unless-stopped'
     networks:
       - media-server-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8096/health || exit 1"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
       init-folders:
         condition: service_completed_successfully
