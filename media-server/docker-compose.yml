@@ -215,7 +215,8 @@ services:
       - 17359:7359/udp
     volumes:
       - jellyfin-storage:/config
-      - jellyfin-cache:/cache
+# not mapping cache directory should create a non-persistent volume
+#      - jellyfin-cache:/cache
       - media:/media
       - old-downloads:/old-downloads
     devices:
@@ -323,9 +324,6 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage/services/jellyfin"
-
-  jellyfin-cache:
-    tmpfs: true # temporary volume
 
   seerr-storage:
     driver: local
