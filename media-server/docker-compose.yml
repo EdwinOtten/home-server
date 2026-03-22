@@ -1,5 +1,23 @@
 services:
 
+  init-folders:
+    image: alpine
+    container_name: media-server-init
+    volumes:
+      - media-server-storage-root:/mnt/storage
+    # This command creates all subdirectories at once
+    command: >
+      sh -c "mkdir -p /mnt/storage/media 
+      /mnt/storage/services/sonarr 
+      /mnt/storage/services/radarr 
+      /mnt/storage/services/configarr 
+      /mnt/storage/services/prowlarr 
+      /mnt/storage/services/bazarr 
+      /mnt/storage/services/jellyfin 
+      /mnt/storage/services/seerr 
+      /mnt/storage/services/sabnzbd 
+      /mnt/storage/services/qbittorrent"
+
   # Sabnzbd goes here
   # qBittorrent goes here
 
@@ -30,6 +48,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
 
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
@@ -58,6 +79,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   #configarr:
@@ -105,6 +129,8 @@ services:
       retries: 5
       start_period: 60s
     depends_on:
+      init-folders:
+        condition: service_completed_successfully
       sonarr:
         condition: service_healthy
       radarr:
@@ -142,6 +168,8 @@ services:
       retries: 3
       start_period: 40s
     depends_on:
+      init-folders:
+        condition: service_completed_successfully
       sonarr:
         condition: service_healthy
       radarr:
@@ -162,6 +190,13 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nolock,ro,soft,nfsvers=4
       device: ":/volume1/downloads"
+
+  media-server-storage-root:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.1.111,nfsvers=4,rw
+      device: ":/volume1/media-server-storage"
 
   media:
     driver: local
