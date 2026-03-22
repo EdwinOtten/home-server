@@ -1,0 +1,8 @@
+# .sops.yaml in project root
+
+creation_rules:
+  # path_regex ommitted so we match all files
+  - encrypted_regex: '(?i)^.*(password|secret|key|token).*$'
+    age:
+      - age19whvc0x3mu6wex8huyqsn75asw7n50kfyhgnj67gs9gnrwxl6czsg8mzjh # WSL
+      - age13maz4wfd7l7j0hedd6lwl4u26vu0pn557tdychq8jpkh2rh7wulsvcjrh7 #YAMS

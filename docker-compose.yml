@@ -17,6 +17,7 @@ services:
     environment:
       TZ: Europe/Amsterdam
       GIT_ACCESS_TOKEN: ${GITHUB_READ_TOKEN}
+      SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key # docker secrets are always mounted to /run/secrets/ if no target is specified
       DOCKER_SWARM_FEATURES: false
       LOG_LEVEL: debug
       <<: *poll-config  # Uncomment this line to use the poll configuration from above (the `x-poll-config` section).
@@ -28,5 +29,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-
-
+secrets:
+  sops_age_key:
+    file: sops_age_key.txt

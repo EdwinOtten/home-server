@@ -3,14 +3,14 @@ working_dir: media-server/
 compose_files:
   - docker-compose.yml
 #force_recreate: true
-destroy: true
+#destroy: true
 destroy_opts:
   remove_volumes: true
   remove_images: true
   remove_dir: true
 env_files:
-  - example.env
-#  - .enc.env
+#  - example.env
+  - .enc.env
 
 #name: nfs-test
 #working_dir: nfs-test/

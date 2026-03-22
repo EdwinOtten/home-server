@@ -3,10 +3,11 @@ Home Server deployed by doco-cd.
 
 ## .bashrc aliases
 ```
-alias d=docker
+alias l='ls -lrah --color=auto'
+alias d='docker'
+alias n='nano'
 alias dlogsa="docker logs home-server 2>&1 | jq ."
 alias dlogs="docker logs --since 5m home-server 2>&1 | jq ."
-alias l='ls -lra --color=auto'
 ```
 
 ## Encrypting secrets using SOPS and age
