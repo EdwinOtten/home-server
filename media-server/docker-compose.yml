@@ -17,6 +17,8 @@ services:
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
       /mnt/storage/services/qbittorrent"
+    healthcheck:
+      disable: true
 
   # qBitorrent is used to download torrents
   # qbittorrent:
