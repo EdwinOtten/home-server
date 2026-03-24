@@ -1,6 +1,6 @@
 services:
   portainer:
-    container_name: portainer
+    container_name: portainer2
     image: portainer/portainer-ce:sts
     restart: always
     volumes:
