@@ -11,6 +11,11 @@ destroy_opts:
 env_files:
   - .enc.env
 
+name: monitoring
+working_dir: monitoring/
+compose_files:
+  - docker-compose.yml
+  
 #name: nfs-test
 #working_dir: nfs-test/
 #compose_files:
