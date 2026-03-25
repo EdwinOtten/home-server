@@ -1,0 +1,40 @@
+name: "Copilot Setup Steps"
+
+# This workflow configures the environment for GitHub Copilot Agent
+# Automatically run the setup steps when they are changed to allow for easy validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called 'copilot-setup-steps' to be recognized by GitHub Copilot Agent
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    # Set minimal permissions for setup steps
+    # Copilot Agent receives its own token with appropriate permissions
+    permissions:
+      contents: read
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+
+      # Install gh-aw extension for advanced GitHub CLI features
+      - name: Install gh-aw extension
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/githubnext/gh-aw/refs/heads/main/install-gh-aw.sh | bash
+
+      # Verify installations
+      - name: Verify tool installations
+        run: |
+          echo "=== Verifying installations ==="
+          docker --version
+          gh aw version
+          echo "✅ All tools installed successfully"
