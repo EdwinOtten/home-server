@@ -16,7 +16,9 @@ In production, doco-cd is used to deploy in a GitOps fashion. The `.doco-cd.yml`
 ```
 
 ## Developing/implementing an issue:
-1. Before making code changes, follow the testing instructions below to verify if the current state of the code runs and all containers are healthy.
+1. Before making code changes, follow the testing instructions below to verify if the current state of the code.
+  - Only start developing the new functionality if all containers are healthy or stopped with exit code 0. 
+  - If something is failing before you made any code changes, report back to the user about what's broken (including relevant error details) and wait for new instructions from the user.
 2. After verifying all containers in the relevant workload are healthy, make code changes to implement the requested functionality.
 3. Run `docker compose up -d` again to deploy the changes. Keep iterating on code changes and testing until the requested functionality is realized.
 4. Only submit Pull Requests if all containers are healthy.
