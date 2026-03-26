@@ -11,7 +11,7 @@
 #      - Enables remote access (disables UPnP auto-mapping).
 #      - Marks the wizard as complete.
 #   3. Injects JELLYFIN_API_KEY into the ApiKeys table via Python 3's built-in sqlite3
-#      module — no additional packages required.
+#      module. Python 3 is installed automatically if not already present.
 #      (The Jellyfin API does not allow specifying a pre-determined key value; it always
 #      generates a random one, so the exact key must be written directly to the database.)
 #
@@ -27,9 +27,16 @@ DB_PATH="/config/data/data/jellyfin.db"
   done
   echo "[jellyfin-init] Jellyfin is up."
 
+  # Install Python3 if not available (needed to safely build JSON with special chars and for SQLite3 injection)
+  if ! command -v python3 &>/dev/null; then
+    if ! apt-get update -q && apt-get install -y -q --no-install-recommends python3; then
+      echo "[jellyfin-init] ERROR: Failed to install python3; subsequent steps that require it will fail."
+    fi
+  fi
+
   # ── 1. Complete the setup wizard (idempotent) ────────────────────────────────
 
-  WIZARD_COMPLETE=$(curl -sSf "${JELLYFIN_URL}/System/Info/Public" | \
+  WIZARD_COMPLETE=$(curl -sSf "${JELLYFIN_URL}/System/Info/Public" 2>/dev/null | \
     python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('StartupWizardCompleted', False))" 2>/dev/null)
 
   if [ -z "${WIZARD_COMPLETE}" ]; then
