@@ -216,6 +216,8 @@ services:
       - PGID=${PGID:?error}
       - TZ=${TZ:?error}
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+      - JELLYFIN_ADMIN_USER=${JELLYFIN_ADMIN_USER:?error}
+      - JELLYFIN_ADMIN_PASSWORD=${JELLYFIN_ADMIN_PASSWORD:?error}
     ports:
       - 18096:8096/tcp
       - 17359:7359/udp
