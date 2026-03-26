@@ -66,8 +66,16 @@ services:
       - SONARR__AUTH__APIKEY=${SONARR_API_KEY:?error}
       - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-      - media:/media
-      - sonarr-storage:/config
+      - type: volume
+        source: media-server-storage-root
+        target: /media
+        volume:
+          subpath: media
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/sonarr
     ports:
       - 18989:8989
     restart: unless-stopped
@@ -97,8 +105,16 @@ services:
       - RADARR__AUTH__APIKEY=${RADARR_API_KEY:?error}
       - RADARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-      - media:/media
-      - radarr-storage:/config
+      - type: volume
+        source: media-server-storage-root
+        target: /media
+        volume:
+          subpath: media
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/radarr
     ports:
       - 17878:7878
     restart: unless-stopped
@@ -147,7 +163,11 @@ services:
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
     volumes:
-      - prowlarr-storage:/config
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/prowlarr
     ports:
       - 19696:9696
     restart: unless-stopped
@@ -182,8 +202,16 @@ services:
       - SONARR_PORT=18989
       - RADARR_PORT=17878
     volumes:
-      - media:/media
-      - bazarr-storage:/config
+      - type: volume
+        source: media-server-storage-root
+        target: /media
+        volume:
+          subpath: media
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/bazarr
       # Mount the init script into the LSIO init directory
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
@@ -222,10 +250,18 @@ services:
       - 18096:8096/tcp
       - 17359:7359/udp
     volumes:
-      - jellyfin-storage:/config
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/jellyfin
 # not mapping cache directory should create a non-persistent volume
 #      - jellyfin-cache:/cache
-      - media:/media
+      - type: volume
+        source: media-server-storage-root
+        target: /media
+        volume:
+          subpath: media
       - old-downloads:/old-downloads
       # Mount the init script into the LSIO init directory
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
@@ -260,7 +296,11 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - seerr-storage:/app/config
+      - type: volume
+        source: media-server-storage-root
+        target: /app/config
+        volume:
+          subpath: services/seerr
     restart: unless-stopped
     networks:
       - media-server-network
@@ -292,59 +332,3 @@ volumes:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage"
-
-  media:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/media"
-
-  sonarr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/sonarr"
-
-  radarr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/radarr"
-
-  configarr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/configarr"
-
-  prowlarr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/prowlarr"
-
-  bazarr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/bazarr"
-
-  jellyfin-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/jellyfin"
-
-  seerr-storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
-      device: ":/volume1/media-server-storage/services/seerr"
