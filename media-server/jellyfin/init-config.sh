@@ -36,14 +36,8 @@ DB_PATH="/config/data/data/jellyfin.db"
 
   # ── 1. Complete the setup wizard (idempotent) ────────────────────────────────
 
-  SYSTEM_INFO=$(curl -sSf "${JELLYFIN_URL}/System/Info/Public" 2>/dev/null)
-  if echo "${SYSTEM_INFO}" | grep -q '"StartupWizardCompleted":true'; then
-    WIZARD_COMPLETE="True"
-  elif [ -z "${SYSTEM_INFO}" ]; then
-    WIZARD_COMPLETE=""
-  else
-    WIZARD_COMPLETE="False"
-  fi
+  WIZARD_COMPLETE=$(curl -sSf "${JELLYFIN_URL}/System/Info/Public" 2>/dev/null | \
+    python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('StartupWizardCompleted', False))" 2>/dev/null)
 
   if [ -z "${WIZARD_COMPLETE}" ]; then
     echo "[jellyfin-init] WARNING: Could not determine wizard status; skipping wizard setup."
