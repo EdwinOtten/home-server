@@ -18,7 +18,7 @@
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
 JELLYFIN_URL="http://localhost:8096"
-DB_PATH="/config/data/jellyfin.db"
+DB_PATH="/config/data/data/jellyfin.db"
 
 (
   echo "[jellyfin-init] Waiting for Jellyfin to be ready..."
