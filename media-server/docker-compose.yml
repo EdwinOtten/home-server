@@ -3,9 +3,12 @@ services:
   init-folders:
     image: alpine
     container_name: media-server-init
+    environment:
+      - PUID=${PUID:?error}
+      - PGID=${PGID:?error}
     volumes:
       - media-server-storage-root:/mnt/storage
-    # This command creates all subdirectories at once
+    # This command creates all subdirectories at once and sets correct ownership
     command: >
       sh -c "mkdir -p /mnt/storage/media 
       /mnt/storage/services/sonarr 
@@ -16,7 +19,8 @@ services:
       /mnt/storage/services/jellyfin 
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
-      /mnt/storage/services/qbittorrent"
+      /mnt/storage/services/qbittorrent &&
+      chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/services"
     healthcheck:
       disable: true
 
