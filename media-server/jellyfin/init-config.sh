@@ -64,7 +64,7 @@ DB_PATH="/config/data/data/jellyfin.db"
     # Set English locale and metadata language
     if ! curl -sSf -X POST "${JELLYFIN_URL}/Startup/Configuration" \
       -H "Content-Type: application/json" \
-      -d '{"UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}'; then
+      -d '{"ServerName":"jellyfin","UICulture":"en-US","MetadataCountryCode":"US","PreferredMetadataLanguage":"en"}'; then
       echo "[jellyfin-init] ERROR: Failed to set startup configuration."
       exit 1
     fi
