@@ -25,7 +25,8 @@ DB_PATH="/config/data/data/jellyfin.db"
   until curl -sf "${JELLYFIN_URL}/health" > /dev/null 2>&1; do
     sleep 5
   done
-  echo "[jellyfin-init] Jellyfin is up."
+  echo "[jellyfin-init] Jellyfin is up. Sleeping for 20 seconds..."
+  sleep 20
 
   # Install Python3 if not available
   if ! command -v python3 >/dev/null 2>&1; then
