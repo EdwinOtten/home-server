@@ -78,6 +78,7 @@ print(json.dumps({
 }))")
     echo "[jellyfin-init] Payload to be sent to /Startup/User: ${SETUP_USER_PAYLOAD}" 
     if ! curl -sSf -X POST "${JELLYFIN_URL}/Startup/User" \
+      -H 'accept: */*' \
       -H "Content-Type: application/json" \
       -d "${SETUP_USER_PAYLOAD}"; then
       echo "[jellyfin-init] ERROR: Failed to set admin user."
