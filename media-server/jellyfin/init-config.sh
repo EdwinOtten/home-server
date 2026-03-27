@@ -69,6 +69,14 @@ DB_PATH="/config/data/data/jellyfin.db"
       exit 1
     fi
 
+    # Initialize the first user via GET before updating it via POST.
+    # Without this GET call, POST /Startup/User fails with "Sequence contains no elements"
+    # because Jellyfin has not yet created the initial user record.
+    if ! curl -sSf "${JELLYFIN_URL}/Startup/User" > /dev/null; then
+      echo "[jellyfin-init] ERROR: Failed to initialize startup user."
+      exit 1
+    fi
+
     # Set admin username and password (build JSON via Python to safely handle special chars)
     SETUP_USER_PAYLOAD=$(python3 -c "
 import json, os
