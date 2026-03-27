@@ -76,6 +76,7 @@ print(json.dumps({
     'Name': os.environ.get('JELLYFIN_ADMIN_USER', ''),
     'Password': os.environ.get('JELLYFIN_ADMIN_PASSWORD', '')
 }))")
+    echo "[jellyfin-init] Payload to be sent to /Startup/User: ${SETUP_USER_PAYLOAD}" 
     if ! curl -sSf -X POST "${JELLYFIN_URL}/Startup/User" \
       -H "Content-Type: application/json" \
       -d "${SETUP_USER_PAYLOAD}"; then
