@@ -16,11 +16,12 @@ services:
       /mnt/storage/services/configarr 
       /mnt/storage/services/prowlarr 
       /mnt/storage/services/bazarr 
-      /mnt/storage/services/jellyfin 
+      /mnt/storage/services/jellyfin/data 
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
       /mnt/storage/services/qbittorrent &&
-      chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/services"
+      chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/services &&
+      chmod -R u+rwX,go+rX /mnt/storage/services"
     healthcheck:
       disable: true
 
