@@ -27,13 +27,19 @@ DB_PATH="/config/data/data/jellyfin.db"
   done
   echo "[jellyfin-init] Jellyfin is up."
 
-  # Install Python3 if not available (needed to safely build JSON with special chars and for SQLite3 injection)
-  if ! command -v python3 &>/dev/null; then
-    if ! apt-get update -q && apt-get install -y -q --no-install-recommends python3; then
-      echo "[jellyfin-init] ERROR: Failed to install python3; subsequent steps that require it will fail."
+  # Install Python3 if not available
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "[jellyfin-init] python3 not found; installing..."
+    if apt-get update -q && apt-get install -y -q --no-install-recommends python3; then
+      echo "[jellyfin-init] python3 installed."
+    else
+      echo "[jellyfin-init] ERROR: Failed to install python3; subsequent steps require python. Aborting."
+      # Don't continue, because later we call python3 for JSON parsing and DB injection
+      exit 1
     fi
   fi
 
+  command -v python3 >/dev/null 2>&1 || { echo "[jellyfin-init] ERROR: python3 still missing"; exit 1; }
   # ── 1. Complete the setup wizard (idempotent) ────────────────────────────────
 
   WIZARD_COMPLETE=$(curl -sSf "${JELLYFIN_URL}/System/Info/Public" 2>/dev/null | \
