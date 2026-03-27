@@ -21,7 +21,7 @@ services:
       /mnt/storage/services/sabnzbd 
       /mnt/storage/services/qbittorrent &&
       chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/services &&
-      chmod -R u+rwX,go+rX /mnt/storage/services"
+      chmod -R u+rwX,go-wx /mnt/storage/services"
     healthcheck:
       disable: true
 
