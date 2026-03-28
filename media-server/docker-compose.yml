@@ -51,6 +51,15 @@ services:
     restart: unless-stopped
     ports:
       - 18081:8081
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
 
   # SABnzbd is used to download from usenet
   sabnzbd:
@@ -75,6 +84,15 @@ services:
     ports:
       - 18080:8080
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
