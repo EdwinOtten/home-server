@@ -268,9 +268,11 @@ services:
         volume:
           subpath: media
       - old-downloads:/old-downloads
-      # Mount the init script into the LSIO init directory
+      # Mount the init scripts into the LSIO init directory.
+      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.py:/opt/init-config.py:ro
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
     restart: 'unless-stopped'
