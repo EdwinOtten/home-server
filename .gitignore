@@ -1,2 +1,3 @@
 **/.env
 **/sops_age_key.txt
+**/__pycache__/
