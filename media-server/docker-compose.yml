@@ -10,7 +10,10 @@ services:
       - media-server-storage-root:/mnt/storage
     # This command creates all subdirectories at once and sets correct ownership
     command: >
-      sh -c "mkdir -p /mnt/storage/media 
+      sh -c "mkdir -p /mnt/storage/media/movies 
+      /mnt/storage/media/series 
+      /mnt/storage/downloads/nzb 
+      /mnt/storage/downloads/torrent 
       /mnt/storage/services/sonarr 
       /mnt/storage/services/radarr 
       /mnt/storage/services/configarr 
@@ -20,7 +23,7 @@ services:
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
       /mnt/storage/services/qbittorrent &&
-      chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/services &&
+      chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/downloads /mnt/storage/services &&
       chmod -R u+rwX,go-wx /mnt/storage/services"
     healthcheck:
       disable: true
