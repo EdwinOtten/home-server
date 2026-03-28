@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-# This script is executed by the LinuxServer.io container customization mechanism
-# (mounted at /custom-cont-init.d/) before Jellyfin starts.
+# This script is executed indirectly by the LinuxServer.io container customization
+# mechanism (mounted at /opt/init-config.py). A small bash wrapper at
+# /custom-cont-init.d/init-config.sh calls `exec python3 /opt/init-config.py`
+# because LinuxServer runs custom-cont-init.d scripts via /bin/bash, so Python
+# scripts cannot be placed in that directory directly.
 #
 # It forks a background process that:
 #   1. Waits for Jellyfin to become ready (the service starts after this script exits).
