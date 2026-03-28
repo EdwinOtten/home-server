@@ -5,7 +5,7 @@
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "[jellyfin-init] python3 not found; installing..."
-    if apk add --no-cache python3; then
+    if apt-get update -q && apt-get install -y -q --no-install-recommends python3; then
         echo "[jellyfin-init] python3 installed."
     else
         echo "[jellyfin-init] ERROR: Failed to install python3. Aborting."
