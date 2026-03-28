@@ -45,20 +45,28 @@ services:
   #     - 8081:8081 # qbittorrent
 
   # SABnzbd is used to download from usenet
-  # sabnzbd:
-  #   image: lscr.io/linuxserver/sabnzbd:latest
-  #   container_name: sabnzbd
-  #   environment:
-  #     - PUID=${PUID}
-  #     - PGID=${PGID}
-  #     - TZ=America/Montevideo
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
-  #     - ${MEDIA_DIRECTORY}:/data
-  #     - ${INSTALL_DIRECTORY}/config/sabnzbd:/config
-  #   ports: # sabnzbd
-  #     - 8080:8080 # sabnzbd
-  #   restart: unless-stopped
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd2
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ?:error}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - type: volume
+        source: media-server-storage-root
+        target: /data
+        volume:
+          subpath: downloads
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/sabnzbd
+    ports: # sabnzbd
+      - 18080:8080 # sabnzbd
+    restart: unless-stopped
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
