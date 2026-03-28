@@ -1,4 +1,5 @@
 name: media-server
+reference: copilot/refactor-init-config-script
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
