@@ -29,20 +29,28 @@ services:
       disable: true
 
   # qBitorrent is used to download torrents
-  # qbittorrent:
-  #   image: lscr.io/linuxserver/qbittorrent:4.6.3
-  #   container_name: qbittorrent
-  #   environment:
-  #     - PUID=${PUID}
-  #     - PGID=${PGID}
-  #     - WEBUI_PORT=8081
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
-  #     - ${MEDIA_DIRECTORY}:/data
-  #     - ${INSTALL_DIRECTORY}/config/qbittorrent:/config
-  #   restart: unless-stopped
-  #   ports: # qbittorrent
-  #     - 8081:8081 # qbittorrent
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:4.6.3
+    container_name: qbittorrent
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - WEBUI_PORT=8081
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - type: volume
+        source: media-server-storage-root
+        target: /data
+        volume:
+          subpath: downloads/torrent
+      - type: volume
+        source: media-server-storage-root
+        target: /config
+        volume:
+          subpath: services/qbittorrent
+    restart: unless-stopped
+    ports:
+      - 18081:8081
 
   # SABnzbd is used to download from usenet
   sabnzbd:
@@ -58,14 +66,14 @@ services:
         source: media-server-storage-root
         target: /data
         volume:
-          subpath: downloads
+          subpath: downloads/nzb
       - type: volume
         source: media-server-storage-root
         target: /config
         volume:
           subpath: services/sabnzbd
-    ports: # sabnzbd
-      - 18080:8080 # sabnzbd
+    ports:
+      - 18080:8080
     restart: unless-stopped
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
