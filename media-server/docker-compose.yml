@@ -31,7 +31,7 @@ services:
   # qBitorrent is used to download torrents
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:4.6.3
-    container_name: qbittorrent
+    container_name: qbittorrent2
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
