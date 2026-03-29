@@ -143,7 +143,10 @@ def add_media_libraries():
     except Exception as exc:
         log(f"WARNING: Could not authenticate to add media libraries: {exc}")
         return
-    token = auth_result["AccessToken"]
+    token = auth_result.get("AccessToken")
+    if not token:
+        log("WARNING: Authentication response did not include an AccessToken; cannot add media libraries.")
+        return
     auth_header = f'MediaBrowser Token="{token}"'
 
     # Fetch the list of existing virtual folders so this step is idempotent.
