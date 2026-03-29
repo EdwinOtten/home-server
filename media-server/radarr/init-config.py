@@ -9,8 +9,7 @@
 # It forks a background process that:
 #   1. Waits for Radarr's API to become ready (the service starts after this script exits).
 #   2. Updates media management settings via the Radarr API (idempotent):
-#      - renameMovies: true
-#      - replaceIllegalCharacters: true
+#      - autoRenameFolders: true
 #      - standardMovieFormat: {Movie Title} ({Release Year})
 #      - movieFolderFormat: {Movie Title} ({Release Year})
 #   3. Adds /media/movies as a root folder if it does not already exist.
@@ -84,8 +83,7 @@ def configure_media_management(api_key):
         return
 
     desired = {
-        "renameMovies": True,
-        "replaceIllegalCharacters": True,
+        "autoRenameFolders": True,
         "standardMovieFormat": "{Movie Title} ({Release Year})",
         "movieFolderFormat": "{Movie Title} ({Release Year})",
     }
@@ -96,9 +94,10 @@ def configure_media_management(api_key):
         return
 
     settings.update(desired)
+    config_id = settings["id"]
     log("Updating media management settings...")
     try:
-        api_put("/api/v3/config/mediamanagement", settings, api_key)
+        api_put(f"/api/v3/config/mediamanagement/{config_id}", settings, api_key)
         log("Media management settings updated.")
     except Exception as exc:
         log(f"WARNING: Could not update media management settings: {exc}")
