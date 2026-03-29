@@ -13,7 +13,10 @@
 #      - Sets the admin username and password from JELLYFIN_ADMIN_USER / JELLYFIN_ADMIN_PASSWORD.
 #      - Enables remote access (disables UPnP auto-mapping).
 #      - Marks the wizard as complete.
-#   3. Injects JELLYFIN_API_KEY into the ApiKeys table via the built-in sqlite3 module.
+#   3. Adds two media libraries via the Jellyfin API (if they don't already exist):
+#      - "Movies"  (collectionType=movies)  pointing at /media/movies
+#      - "Series"  (collectionType=tvshows) pointing at /media/series
+#   4. Injects JELLYFIN_API_KEY into the ApiKeys table via the built-in sqlite3 module.
 #      (The Jellyfin API does not allow specifying a pre-determined key value; it always
 #      generates a random one, so the exact key must be written directly to the database.)
 #
@@ -24,6 +27,7 @@ import os
 import sqlite3
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 JELLYFIN_URL = "http://localhost:8096"
@@ -109,6 +113,98 @@ def complete_wizard_if_needed():
     log("Setup wizard complete.")
 
 
+def add_media_libraries():
+    """Add Movies and Series media libraries if they don't already exist."""
+    admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
+    admin_pass = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
+    if not admin_user or not admin_pass:
+        log("JELLYFIN_ADMIN_USER/JELLYFIN_ADMIN_PASSWORD not set, skipping media library setup.")
+        return
+
+    log("Setting up media libraries...")
+
+    # Authenticate with admin credentials to obtain a session token.
+    # The Authorization header is required by Jellyfin even for the login endpoint.
+    # Note: Jellyfin's AuthenticateByName API uses 'Pw' (not 'Password') for the password field.
+    client_auth = (
+        'MediaBrowser Client="init-config", Device="init-config", '
+        'DeviceId="init-config", Version="1.0.0"'
+    )
+    data = json.dumps({"Username": admin_user, "Pw": admin_pass}).encode()
+    req = urllib.request.Request(
+        f"{JELLYFIN_URL}/Users/AuthenticateByName",
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": client_auth},
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            auth_result = json.loads(resp.read())
+    except Exception as exc:
+        log(f"WARNING: Could not authenticate to add media libraries: {exc}")
+        return
+    token = auth_result.get("AccessToken")
+    if not token:
+        log("WARNING: Authentication response did not include an AccessToken; cannot add media libraries.")
+        return
+    auth_header = f'MediaBrowser Token="{token}"'
+
+    # Fetch the list of existing virtual folders so this step is idempotent.
+    req = urllib.request.Request(
+        f"{JELLYFIN_URL}/Library/VirtualFolders",
+        headers={"Authorization": auth_header},
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            folders = json.loads(resp.read())
+    except Exception as exc:
+        log(f"WARNING: Could not fetch existing media libraries: {exc}")
+        return
+    existing_names = {f["Name"].lower() for f in folders}
+
+    # Libraries to create, mapped to the paths inside the container.
+    libraries = [
+        {"name": "Movies", "collectionType": "movies", "path": "/media/movies"},
+        {"name": "Series", "collectionType": "tvshows", "path": "/media/series"},
+    ]
+
+    for lib in libraries:
+        if lib["name"].lower() in existing_names:
+            log(f"Library '{lib['name']}' already exists, skipping.")
+            continue
+
+        log(f"Adding '{lib['name']}' library at {lib['path']}...")
+        params = urllib.parse.urlencode([
+            ("name", lib["name"]),
+            ("collectionType", lib["collectionType"]),
+            ("paths", lib["path"]),
+            ("refreshLibrary", "false"),
+        ])
+        body = json.dumps({
+            "LibraryOptions": {
+                "Enabled": True,
+                "PreferredMetadataLanguage": "en",
+                "MetadataCountryCode": "NL",
+                "EnableEmbeddedTitles": True,
+                "EnableEmbeddedExtrasTitles": False,
+            },
+        }).encode()
+        req = urllib.request.Request(
+            f"{JELLYFIN_URL}/Library/VirtualFolders?{params}",
+            data=body,
+            method="POST",
+            headers={"Content-Type": "application/json", "Authorization": auth_header},
+        )
+        try:
+            with urllib.request.urlopen(req) as resp:
+                resp.read()
+            log(f"Library '{lib['name']}' added.")
+        except Exception as exc:
+            log(f"WARNING: Could not add library '{lib['name']}': {exc}")
+
+    log("Media library setup complete.")
+
+
 def inject_api_key():
     api_key = os.environ.get("JELLYFIN_API_KEY", "")
     if not api_key:
@@ -133,6 +229,7 @@ def inject_api_key():
 def main():
     wait_for_jellyfin()
     complete_wizard_if_needed()
+    add_media_libraries()
     inject_api_key()
 
 
