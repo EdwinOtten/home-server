@@ -1,5 +1,5 @@
 name: media-server
-reference: main
+reference: copilot/add-media-libraries-to-jellyfin
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
