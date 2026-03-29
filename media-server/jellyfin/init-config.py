@@ -177,9 +177,18 @@ def add_media_libraries():
             ("paths", lib["path"]),
             ("refreshLibrary", "false"),
         ])
+        body = json.dumps({
+            "LibraryOptions": {
+                "Enabled": True,
+                "PreferredMetadataLanguage": "en",
+                "MetadataCountryCode": "NL",
+                "EnableEmbeddedTitles": True,
+                "EnableEmbeddedExtrasTitles": False,
+            },
+        }).encode()
         req = urllib.request.Request(
             f"{JELLYFIN_URL}/Library/VirtualFolders?{params}",
-            data=b"{}",
+            data=body,
             method="POST",
             headers={"Content-Type": "application/json", "Authorization": auth_header},
         )
