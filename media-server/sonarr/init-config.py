@@ -12,10 +12,11 @@
 #      - renameEpisodes: true
 #      - replaceIllegalCharacters: true
 #      - colonReplacementFormat: 1 (Smart Replace)
-#      - multiEpisodeStyle: 1
+#      - multiEpisodeStyle: 5 (Prefixed Range)
 #      - standardEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
 #      - dailyEpisodeFormat: {Series Title} - {Air-Date} - {Episode Title}
 #      - animeEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
+#      - seriesFolderFormat: {Series TitleYear}
 #      - seasonFolderFormat: Season {season}
 #   3. Adds /media/series as a root folder if it does not already exist.
 #
@@ -91,10 +92,11 @@ def configure_naming(api_key):
         "renameEpisodes": True,
         "replaceIllegalCharacters": True,
         "colonReplacementFormat": 1,
-        "multiEpisodeStyle": 1,
+        "multiEpisodeStyle": 5,
         "standardEpisodeFormat": "{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
         "dailyEpisodeFormat": "{Series Title} - {Air-Date} - {Episode Title}",
         "animeEpisodeFormat": "{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
+        "seriesFolderFormat": "{Series TitleYear}",
         "seasonFolderFormat": "Season {season}",
     }
 
