@@ -8,11 +8,14 @@
 #
 # It forks a background process that:
 #   1. Waits for Radarr's API to become ready (the service starts after this script exits).
-#   2. Updates media management settings via the Radarr API (idempotent):
+#   2. Updates media management settings via /api/v3/config/mediamanagement (idempotent):
 #      - autoRenameFolders: true
+#   3. Updates naming settings via /api/v3/config/naming (idempotent):
+#      - renameMovies: true
+#      - replaceIllegalCharacters: true
 #      - standardMovieFormat: {Movie Title} ({Release Year})
 #      - movieFolderFormat: {Movie Title} ({Release Year})
-#   3. Adds /media/movies as a root folder if it does not already exist.
+#   4. Adds /media/movies as a root folder if it does not already exist.
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -84,8 +87,6 @@ def configure_media_management(api_key):
 
     desired = {
         "autoRenameFolders": True,
-        "standardMovieFormat": "{Movie Title} ({Release Year})",
-        "movieFolderFormat": "{Movie Title} ({Release Year})",
     }
 
     needs_update = any(settings.get(k) != v for k, v in desired.items())
@@ -101,6 +102,36 @@ def configure_media_management(api_key):
         log("Media management settings updated.")
     except Exception as exc:
         log(f"WARNING: Could not update media management settings: {exc}")
+
+
+def configure_naming(api_key):
+    log("Fetching current naming settings...")
+    try:
+        settings = api_get("/api/v3/config/naming", api_key)
+    except Exception as exc:
+        log(f"WARNING: Could not fetch naming settings: {exc}")
+        return
+
+    desired = {
+        "renameMovies": True,
+        "replaceIllegalCharacters": True,
+        "standardMovieFormat": "{Movie Title} ({Release Year})",
+        "movieFolderFormat": "{Movie Title} ({Release Year})",
+    }
+
+    needs_update = any(settings.get(k) != v for k, v in desired.items())
+    if not needs_update:
+        log("Naming settings already correct, skipping.")
+        return
+
+    settings.update(desired)
+    config_id = settings["id"]
+    log("Updating naming settings...")
+    try:
+        api_put(f"/api/v3/config/naming/{config_id}", settings, api_key)
+        log("Naming settings updated.")
+    except Exception as exc:
+        log(f"WARNING: Could not update naming settings: {exc}")
 
 
 def add_root_folder(api_key):
@@ -133,6 +164,7 @@ def main():
 
     wait_for_radarr(api_key)
     configure_media_management(api_key)
+    configure_naming(api_key)
     add_root_folder(api_key)
     log("Init complete.")
 
