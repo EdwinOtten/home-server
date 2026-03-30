@@ -118,6 +118,11 @@ services:
         target: /config
         volume:
           subpath: services/sonarr
+      # Mount the init scripts into the LSIO init directory.
+      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
+      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.py:/opt/sonarr-init-config.py:ro
     ports:
       - 18989:8989
     restart: unless-stopped
