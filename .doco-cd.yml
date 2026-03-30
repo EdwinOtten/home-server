@@ -1,5 +1,5 @@
 name: media-server
-reference: copilot/add-radarr2-init-script
+reference: main
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
