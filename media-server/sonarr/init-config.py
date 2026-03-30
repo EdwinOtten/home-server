@@ -11,7 +11,7 @@
 #   2. Updates naming settings via /api/v3/config/naming (idempotent):
 #      - renameEpisodes: true
 #      - replaceIllegalCharacters: true
-#      - colonReplacementFormat: 1 (Smart Replace)
+#      - colonReplacementFormat: 4 (Smart Replace)
 #      - multiEpisodeStyle: 5 (Prefixed Range)
 #      - standardEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
 #      - dailyEpisodeFormat: {Series Title} - {Air-Date} - {Episode Title}
@@ -91,7 +91,7 @@ def configure_naming(api_key):
     desired = {
         "renameEpisodes": True,
         "replaceIllegalCharacters": True,
-        "colonReplacementFormat": 1,
+        "colonReplacementFormat": 4,
         "multiEpisodeStyle": 5,
         "standardEpisodeFormat": "{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
         "dailyEpisodeFormat": "{Series Title} - {Air-Date} - {Episode Title}",
