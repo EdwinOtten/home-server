@@ -213,12 +213,18 @@ services:
       - PROWLARR__AUTH__METHOD=Forms
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
+      - NZBGEEK_API_KEY=${NZBGEEK_API_KEY:?error}
     volumes:
       - type: volume
         source: media-server-storage-root
         target: /config
         volume:
           subpath: services/prowlarr
+      # Mount the init scripts into the LSIO init directory.
+      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
+      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.py:/opt/prowlarr-init-config.py:ro
     ports:
       - 19696:9696
     restart: unless-stopped
