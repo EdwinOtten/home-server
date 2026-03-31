@@ -9,7 +9,7 @@
 # It forks a background process that:
 #   1. Waits for Prowlarr's API to become ready (the service starts after this script exits).
 #   2. Adds the NZBGeek indexer if it does not already exist (idempotent):
-#      - Fetches the NZBGeek indexer schema from /api/v1/indexerschema
+#      - Fetches the NZBGeek indexer schema from /api/v1/indexer/schema
 #      - Sets the API key from the NZBGEEK_API_KEY environment variable
 #      - Creates the indexer via POST /api/v1/indexer
 #
@@ -76,7 +76,7 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
 
     log("Fetching NZBGeek indexer schema...")
     try:
-        schemas = api_get("/api/v1/indexerschema", prowlarr_api_key)
+        schemas = api_get("/api/v1/indexer/schema", prowlarr_api_key)
     except Exception as exc:
         log(f"WARNING: Could not fetch indexer schemas: {exc}")
         return
