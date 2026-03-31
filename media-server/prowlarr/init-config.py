@@ -93,7 +93,7 @@ def resolve_app_profile_id(api_key):
         if profile_id:
             return profile_id
 
-    log("WARNING: No valid app profiles found.")
+    log("WARNING: No valid app profiles found. Please configure at least one app profile in Prowlarr.")
     return 0
 
 
