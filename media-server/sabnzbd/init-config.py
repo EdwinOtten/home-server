@@ -107,6 +107,10 @@ def generate_config(config_path, misc_settings, server_name, server_settings):
         f.writelines(lines)
 
 
+_RE_SUBSECTION = re.compile(r"^\[\[(.+?)\]\]\s*$")
+_RE_SECTION = re.compile(r"^\[([^\[\]]+)\]\s*$")
+
+
 def update_config(config_path, misc_settings, server_name, server_settings):
     """Update managed keys in an existing sabnzbd.ini, preserving all other settings.
 
@@ -139,8 +143,8 @@ def update_config(config_path, misc_settings, server_name, server_settings):
     for line in lines:
         stripped = line.strip()
 
-        sub_match = re.match(r"^\[\[(.+?)\]\]\s*$", stripped)
-        sec_match = re.match(r"^\[([^\[\]]+)\]\s*$", stripped) if not sub_match else None
+        sub_match = _RE_SUBSECTION.match(stripped)
+        sec_match = _RE_SECTION.match(stripped) if not sub_match else None
 
         if sub_match:
             # Leaving a previous subsection — flush any missing managed keys
