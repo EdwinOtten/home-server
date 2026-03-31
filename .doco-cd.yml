@@ -1,5 +1,5 @@
 name: media-server
-reference: copilot/automate-sabnzbd-setup
+reference: copilot/automate-nzbgeek-configuration
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
