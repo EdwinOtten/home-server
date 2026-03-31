@@ -11,6 +11,7 @@
 #   2. Adds the NZBGeek indexer if it does not already exist (idempotent):
 #      - Fetches the NZBGeek indexer schema from /api/v1/indexer/schema
 #      - Matches the NZBGeek preset by sortName/name (definitionName is generic)
+#      - Resolves a valid appProfileId from /api/v1/appprofile if the schema uses 0
 #      - Sets the API key from the NZBGEEK_API_KEY environment variable
 #      - Creates the indexer via POST /api/v1/indexer
 #
@@ -32,6 +33,14 @@ def log(msg):
 
 def normalize_name(value):
     return str(value or "").strip().lower()
+
+
+def to_positive_int(value):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return number if number > 0 else 0
 
 
 def api_get(path, api_key):
@@ -64,6 +73,28 @@ def wait_for_prowlarr(api_key):
         except Exception:
             time.sleep(5)
     log("Prowlarr API is up.")
+
+
+def resolve_app_profile_id(api_key):
+    log("Resolving app profile...")
+    try:
+        profiles = api_get("/api/v1/appprofile", api_key)
+    except Exception as exc:
+        log(f"WARNING: Could not fetch app profiles: {exc}")
+        return 0
+
+    for profile in profiles:
+        profile_id = to_positive_int(profile.get("id"))
+        if profile_id and normalize_name(profile.get("name")) == "standard":
+            return profile_id
+
+    for profile in profiles:
+        profile_id = to_positive_int(profile.get("id"))
+        if profile_id:
+            return profile_id
+
+    log("WARNING: No valid app profiles found.")
+    return 0
 
 
 def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
@@ -103,6 +134,12 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
         if field.get("name") == "apiKey":
             field["value"] = nzbgeek_api_key
             break
+
+    if not to_positive_int(nzbgeek_schema.get("appProfileId")):
+        app_profile_id = resolve_app_profile_id(prowlarr_api_key)
+        if not app_profile_id:
+            return
+        nzbgeek_schema["appProfileId"] = app_profile_id
 
     nzbgeek_schema["name"] = "NZBGeek"
     nzbgeek_schema["enable"] = True
