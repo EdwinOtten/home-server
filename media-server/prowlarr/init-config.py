@@ -10,6 +10,7 @@
 #   1. Waits for Prowlarr's API to become ready (the service starts after this script exits).
 #   2. Adds the NZBGeek indexer if it does not already exist (idempotent):
 #      - Fetches the NZBGeek indexer schema from /api/v1/indexer/schema
+#      - Matches the NZBGeek preset by sortName/name (definitionName is generic)
 #      - Sets the API key from the NZBGEEK_API_KEY environment variable
 #      - Creates the indexer via POST /api/v1/indexer
 #
@@ -27,6 +28,10 @@ PREFIX = "[prowlarr-init]"
 
 def log(msg):
     print(f"{PREFIX} {msg}", flush=True)
+
+
+def normalize_name(value):
+    return str(value or "").strip().lower()
 
 
 def api_get(path, api_key):
@@ -83,7 +88,10 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
 
     nzbgeek_schema = None
     for schema in schemas:
-        if schema.get("definitionName", "").lower() == "nzbgeek":
+        if normalize_name(schema.get("sortName")) == "nzbgeek":
+            nzbgeek_schema = schema
+            break
+        if normalize_name(schema.get("name")) == "nzbgeek":
             nzbgeek_schema = schema
             break
 
