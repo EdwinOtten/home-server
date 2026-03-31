@@ -138,6 +138,7 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
     if not to_positive_int(nzbgeek_schema.get("appProfileId")):
         app_profile_id = resolve_app_profile_id(prowlarr_api_key)
         if not app_profile_id:
+            log("ERROR: Cannot create NZBGeek indexer without a valid app profile.")
             return
         nzbgeek_schema["appProfileId"] = app_profile_id
 
