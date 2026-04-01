@@ -11,13 +11,14 @@ alias dlogs="docker logs --since 5m home-server 2>&1 | jq ."
 ```
 
 ## Encrypting secrets using SOPS and age
-1. Install age:
+1. [Install Brew](https://brew.sh) if you haven't
+1. Install age via (we use HomeBrew because we need age version 1.3.1 or above, which is not yet available in the Ubuntu archive):
    ```bash
-   sudo apt install age
+   brew install age
    ```
 1. [Install sops](https://github.com/getsops/sops/releases)
-1. Follow [encryption instructions by doco-cd](https://github.com/kimdre/doco-cd/wiki/Encryption)
-1. On dev machines, copy the private age key to xxx:
+1. Follow [encryption instructions by doco-cd](https://github.com/kimdre/doco-cd/wiki/Encryption), but add `-pq` to the `keygen` command to generate keys that are Post-Quantum resistant.
+1. On dev machines, copy the private age key to specific location in your home directory:
    ```
    mkdir -p $HOME/.config/sops/age && cp sops_age_key.txt $HOME/.config/sops/age/keys.txt
    ```
