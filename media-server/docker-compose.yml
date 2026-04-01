@@ -23,7 +23,7 @@ services:
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
       && chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/downloads /mnt/storage/services &&
-      chmod -R u+rwX,go-wx /mnt/storage/services"
+      chmod -R u+rwX,go-wx /mnt/storage/media /mnt/storage/downloads /mnt/storage/services"
     healthcheck:
       disable: true
 
@@ -68,6 +68,15 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ?:error}
+      - SABNZBD_USER=${SABNZBD_USER:?error}
+      - SABNZBD_PASSWORD=${SABNZBD_PASSWORD:?error}
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_NZB_KEY=${SABNZBD_NZB_KEY:?error}
+      - USENET_SECRET_SERVER=${USENET_SECRET_SERVER:?error}
+      - USENET_SECRET_USER=${USENET_SECRET_USER:?error}
+      - USENET_PASSWORD=${USENET_PASSWORD:?error}
+      - USENET_PORT=${USENET_PORT}
+      - USENET_CONNECTIONS=${USENET_CONNECTIONS}
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - type: volume
@@ -80,6 +89,11 @@ services:
         target: /config
         volume:
           subpath: services/sabnzbd
+      # Mount the init scripts into the LSIO init directory.
+      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
+      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.py:/opt/init-config.py:ro
     ports:
       - 18080:8080
     restart: unless-stopped
