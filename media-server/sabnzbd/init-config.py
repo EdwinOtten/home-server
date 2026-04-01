@@ -66,7 +66,7 @@ def get_env_config():
         "host": "0.0.0.0",
         "port": "8080",
         "download_dir": "/data/incomplete",
-        "complete_dir": "/data",
+        "complete_dir": "/data/complete",
     }
 
     server_name = usenet_host
