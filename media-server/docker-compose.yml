@@ -97,6 +97,8 @@ services:
     ports:
       - 18080:8080
     restart: unless-stopped
+    networks:
+      - media-server-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
       interval: 30s
