@@ -228,6 +228,9 @@ services:
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
       - NZBGEEK_API_KEY=${NZBGEEK_API_KEY:?error}
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
     volumes:
       - type: volume
         source: media-server-storage-root

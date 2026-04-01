@@ -14,6 +14,9 @@
 #      - Resolves a valid appProfileId from /api/v1/appprofile if the schema uses 0
 #      - Sets the API key from the NZBGEEK_API_KEY environment variable
 #      - Creates the indexer via POST /api/v1/indexer
+#   3. Upserts a SABnzbd download client (idempotent):
+#      - Creates the client if it does not exist
+#      - Updates host, port and apiKey if they changed
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -58,6 +61,18 @@ def api_post(path, payload, api_key):
         f"{PROWLARR_URL}{path}",
         data=data,
         method="POST",
+        headers={"Content-Type": "application/json", "X-Api-Key": api_key},
+    )
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
+
+def api_put(path, payload, api_key):
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{PROWLARR_URL}{path}",
+        data=data,
+        method="PUT",
         headers={"Content-Type": "application/json", "X-Api-Key": api_key},
     )
     with urllib.request.urlopen(req) as resp:
@@ -153,6 +168,109 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
         log(f"WARNING: Could not add NZBGeek indexer: {exc}")
 
 
+def get_field_value(fields, field_name):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            return field.get("value")
+    return None
+
+
+def set_field_value(fields, field_name, field_value):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            field["value"] = field_value
+            return True
+    return False
+
+
+def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port):
+    log("Checking existing download clients...")
+    try:
+        clients = api_get("/api/v1/downloadclient", prowlarr_api_key)
+    except Exception as exc:
+        log(f"WARNING: Could not fetch download clients: {exc}")
+        return
+
+    existing = None
+    for client in clients:
+        if normalize_name(client.get("implementation")) == "sabnzbd":
+            existing = client
+            break
+
+    desired = {
+        "host": sabnzbd_host,
+        "port": str(sabnzbd_port),
+        "apiKey": sabnzbd_api_key,
+    }
+
+    if existing is None:
+        log("Fetching SABnzbd download client schema...")
+        try:
+            schemas = api_get("/api/v1/downloadclient/schema", prowlarr_api_key)
+        except Exception as exc:
+            log(f"WARNING: Could not fetch download client schemas: {exc}")
+            return
+
+        sabnzbd_schema = None
+        for schema in schemas:
+            if normalize_name(schema.get("implementation")) == "sabnzbd":
+                sabnzbd_schema = schema
+                break
+            if normalize_name(schema.get("name")) == "sabnzbd":
+                sabnzbd_schema = schema
+                break
+            if normalize_name(schema.get("sortName")) == "sabnzbd":
+                sabnzbd_schema = schema
+                break
+
+        if sabnzbd_schema is None:
+            log("WARNING: SABnzbd schema not found in available download client schemas.")
+            return
+
+        fields = sabnzbd_schema.get("fields", [])
+        for field_name, field_value in desired.items():
+            if not set_field_value(fields, field_name, field_value):
+                log(f"WARNING: SABnzbd schema missing expected field '{field_name}'.")
+                return
+
+        sabnzbd_schema["name"] = "SABnzbd"
+        sabnzbd_schema["enable"] = True
+
+        log("Adding SABnzbd download client...")
+        try:
+            api_post("/api/v1/downloadclient", sabnzbd_schema, prowlarr_api_key)
+            log("SABnzbd download client added.")
+        except Exception as exc:
+            log(f"WARNING: Could not add SABnzbd download client: {exc}")
+        return
+
+    fields = existing.get("fields", [])
+    needs_update = False
+    for field_name, desired_value in desired.items():
+        current_value = get_field_value(fields, field_name)
+        if str(current_value) != str(desired_value):
+            needs_update = True
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing SABnzbd client missing expected field '{field_name}'.")
+                return
+
+    if not needs_update:
+        log("SABnzbd download client already configured, skipping.")
+        return
+
+    existing_id = existing.get("id")
+    if not existing_id:
+        log("WARNING: Existing SABnzbd download client has no id; cannot update.")
+        return
+
+    log("Updating SABnzbd download client...")
+    try:
+        api_put(f"/api/v1/downloadclient/{existing_id}", existing, prowlarr_api_key)
+        log("SABnzbd download client updated.")
+    except Exception as exc:
+        log(f"WARNING: Could not update SABnzbd download client: {exc}")
+
+
 def main():
     prowlarr_api_key = os.environ.get("PROWLARR__AUTH__APIKEY", "")
     if not prowlarr_api_key:
@@ -164,8 +282,17 @@ def main():
         log("ERROR: NZBGEEK_API_KEY is not set. Aborting.")
         sys.exit(1)
 
+    sabnzbd_api_key = os.environ.get("SABNZBD_API_KEY", "")
+    if not sabnzbd_api_key:
+        log("ERROR: SABNZBD_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
+    sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
+    sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
+
     wait_for_prowlarr(prowlarr_api_key)
     add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key)
+    upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     log("Init complete.")
 
 
