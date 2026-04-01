@@ -94,8 +94,8 @@ def resolve_app_profile_id(api_key):
     log("Resolving app profile...")
     try:
         profiles = api_get("/api/v1/appprofile", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch app profiles: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch app profiles.")
         return 0
 
     for profile in profiles:
@@ -116,8 +116,8 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
     log("Checking existing indexers...")
     try:
         indexers = api_get("/api/v1/indexer", prowlarr_api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch indexers: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch indexers.")
         return
 
     existing_names = {i["name"].lower() for i in indexers}
@@ -128,8 +128,8 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
     log("Fetching NZBGeek indexer schema...")
     try:
         schemas = api_get("/api/v1/indexer/schema", prowlarr_api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch indexer schemas: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch indexer schemas.")
         return
 
     nzbgeek_schema = None
@@ -164,8 +164,8 @@ def add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key):
     try:
         api_post("/api/v1/indexer", nzbgeek_schema, prowlarr_api_key)
         log("NZBGeek indexer added.")
-    except Exception as exc:
-        log(f"WARNING: Could not add NZBGeek indexer: {exc}")
+    except Exception:
+        log("WARNING: Could not add NZBGeek indexer.")
 
 
 def get_field_value(fields, field_name):
@@ -183,12 +183,25 @@ def set_field_value(fields, field_name, field_value):
     return False
 
 
+def field_value_matches(field_name, current_value, desired_value):
+    if current_value is None:
+        return False
+
+    if normalize_name(field_name) == "port":
+        current_port = to_positive_int(current_value)
+        desired_port = to_positive_int(desired_value)
+        if current_port and desired_port:
+            return current_port == desired_port
+
+    return str(current_value) == str(desired_value)
+
+
 def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port):
     log("Checking existing download clients...")
     try:
         clients = api_get("/api/v1/downloadclient", prowlarr_api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch download clients: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch download clients.")
         return
 
     existing = None
@@ -207,19 +220,17 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         log("Fetching SABnzbd download client schema...")
         try:
             schemas = api_get("/api/v1/downloadclient/schema", prowlarr_api_key)
-        except Exception as exc:
-            log(f"WARNING: Could not fetch download client schemas: {exc}")
+        except Exception:
+            log("WARNING: Could not fetch download client schemas.")
             return
 
         sabnzbd_schema = None
         for schema in schemas:
-            if normalize_name(schema.get("implementation")) == "sabnzbd":
-                sabnzbd_schema = schema
-                break
-            if normalize_name(schema.get("name")) == "sabnzbd":
-                sabnzbd_schema = schema
-                break
-            if normalize_name(schema.get("sortName")) == "sabnzbd":
+            if (
+                normalize_name(schema.get("implementation")) == "sabnzbd"
+                or normalize_name(schema.get("name")) == "sabnzbd"
+                or normalize_name(schema.get("sortName")) == "sabnzbd"
+            ):
                 sabnzbd_schema = schema
                 break
 
@@ -240,15 +251,15 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         try:
             api_post("/api/v1/downloadclient", sabnzbd_schema, prowlarr_api_key)
             log("SABnzbd download client added.")
-        except Exception as exc:
-            log(f"WARNING: Could not add SABnzbd download client: {exc}")
+        except Exception:
+            log("WARNING: Could not add SABnzbd download client.")
         return
 
     fields = existing.get("fields", [])
     needs_update = False
     for field_name, desired_value in desired.items():
         current_value = get_field_value(fields, field_name)
-        if str(current_value) != str(desired_value):
+        if not field_value_matches(field_name, current_value, desired_value):
             needs_update = True
             if not set_field_value(fields, field_name, desired_value):
                 log(f"WARNING: Existing SABnzbd client missing expected field '{field_name}'.")
@@ -267,8 +278,8 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
     try:
         api_put(f"/api/v1/downloadclient/{existing_id}", existing, prowlarr_api_key)
         log("SABnzbd download client updated.")
-    except Exception as exc:
-        log(f"WARNING: Could not update SABnzbd download client: {exc}")
+    except Exception:
+        log("WARNING: Could not update SABnzbd download client.")
 
 
 def main():
@@ -300,8 +311,8 @@ if __name__ == "__main__":
     if os.fork() == 0:
         try:
             main()
-        except Exception as exc:
-            log(f"ERROR: Unhandled exception in init: {exc}")
+        except Exception:
+            log("ERROR: Unhandled exception in init.")
             sys.exit(1)
     else:
         sys.exit(0)
