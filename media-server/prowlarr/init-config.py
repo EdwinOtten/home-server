@@ -196,6 +196,26 @@ def field_value_matches(field_name, current_value, desired_value):
     return str(current_value) == str(desired_value)
 
 
+def normalize_category_mappings(mappings):
+    normalized = []
+    if not isinstance(mappings, list):
+        return normalized
+    for item in mappings:
+        if not isinstance(item, dict):
+            continue
+        client_category = str(item.get("clientCategory", "")).strip().lower()
+        categories = item.get("categories", [])
+        category_ids = sorted(
+            {
+                cid
+                for cid in (to_positive_int(value) for value in categories)
+                if cid
+            }
+        )
+        normalized.append((client_category, tuple(category_ids)))
+    return sorted(normalized)
+
+
 def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port):
     log("Checking existing download clients...")
     try:
@@ -283,7 +303,7 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
             needs_update = True
 
     current_mappings = existing.get("categories")
-    if current_mappings != desired_category_mappings:
+    if normalize_category_mappings(current_mappings) != normalize_category_mappings(desired_category_mappings):
         existing["categories"] = desired_category_mappings
         needs_update = True
 

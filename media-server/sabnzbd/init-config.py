@@ -90,9 +90,7 @@ def get_env_config():
     }
 
     category_name = "default"
-    category_settings = {
-        "name": "default",
-    }
+    category_settings = {"name": category_name}
 
     return misc_settings, server_name, server_settings, category_name, category_settings
 
