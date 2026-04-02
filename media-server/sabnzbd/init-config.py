@@ -30,7 +30,7 @@ def log(msg):
 def get_env_config():
     """Read and validate configuration from environment variables.
 
-    Returns (misc_settings, server_name, server_settings).
+    Returns (misc_settings, server_name, server_settings, category_name, category_settings).
     """
     api_key = os.environ.get("SABNZBD_API_KEY", "")
     nzb_key = os.environ.get("SABNZBD_NZB_KEY", "")
@@ -89,10 +89,15 @@ def get_env_config():
         "priority": "0",
     }
 
-    return misc_settings, server_name, server_settings
+    category_name = "default"
+    category_settings = {
+        "name": "default",
+    }
+
+    return misc_settings, server_name, server_settings, category_name, category_settings
 
 
-def generate_config(config_path, misc_settings, server_name, server_settings):
+def generate_config(config_path, misc_settings, server_name, server_settings, category_name, category_settings):
     """Generate a new sabnzbd.ini from scratch."""
     lines = ["[misc]\n"]
     for k, v in misc_settings.items():
@@ -100,6 +105,10 @@ def generate_config(config_path, misc_settings, server_name, server_settings):
     lines.append("\n[servers]\n")
     lines.append(f"[[{server_name}]]\n")
     for k, v in server_settings.items():
+        lines.append(f"{k} = {v}\n")
+    lines.append("\n[categories]\n")
+    lines.append(f"[[{category_name}]]\n")
+    for k, v in category_settings.items():
         lines.append(f"{k} = {v}\n")
 
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
@@ -111,7 +120,7 @@ _RE_SUBSECTION = re.compile(r"^\[\[(.+?)\]\]\s*$")
 _RE_SECTION = re.compile(r"^\[([^\[\]]+)\]\s*$")
 
 
-def update_config(config_path, misc_settings, server_name, server_settings):
+def update_config(config_path, misc_settings, server_name, server_settings, category_name, category_settings):
     """Update managed keys in an existing sabnzbd.ini, preserving all other settings.
 
     Handles configobj-style ``[[subsection]]`` headers used by SABnzbd.
@@ -124,9 +133,12 @@ def update_config(config_path, misc_settings, server_name, server_settings):
     subsection = None
     misc_seen = set()
     server_seen = set()
+    category_seen = set()
     misc_section_found = False
     servers_section_found = False
+    categories_section_found = False
     our_server_found = False
+    our_category_found = False
 
     def flush_missing_misc():
         for k, v in misc_settings.items():
@@ -140,6 +152,12 @@ def update_config(config_path, misc_settings, server_name, server_settings):
                 result.append(f"{k} = {v}\n")
                 server_seen.add(k)
 
+    def flush_missing_category():
+        for k, v in category_settings.items():
+            if k not in category_seen:
+                result.append(f"{k} = {v}\n")
+                category_seen.add(k)
+
     for line in lines:
         stripped = line.strip()
 
@@ -150,10 +168,15 @@ def update_config(config_path, misc_settings, server_name, server_settings):
             # Leaving a previous subsection — flush any missing managed keys
             if section == "servers" and subsection == server_name:
                 flush_missing_server()
+            elif section == "categories" and subsection == category_name:
+                flush_missing_category()
             subsection = sub_match.group(1).strip()
             if section == "servers" and subsection == server_name:
                 our_server_found = True
                 server_seen.clear()
+            elif section == "categories" and subsection == category_name:
+                our_category_found = True
+                category_seen.clear()
             result.append(line)
 
         elif sec_match:
@@ -168,6 +191,14 @@ def update_config(config_path, misc_settings, server_name, server_settings):
                     for k, v in server_settings.items():
                         result.append(f"{k} = {v}\n")
                     our_server_found = True
+            elif section == "categories":
+                if subsection == category_name:
+                    flush_missing_category()
+                if not our_category_found:
+                    result.append(f"[[{category_name}]]\n")
+                    for k, v in category_settings.items():
+                        result.append(f"{k} = {v}\n")
+                    our_category_found = True
 
             section = sec_match.group(1).strip()
             subsection = None
@@ -175,6 +206,8 @@ def update_config(config_path, misc_settings, server_name, server_settings):
                 misc_section_found = True
             elif section == "servers":
                 servers_section_found = True
+            elif section == "categories":
+                categories_section_found = True
             result.append(line)
 
         elif "=" in stripped and not stripped.startswith("#") and not stripped.startswith(";"):
@@ -185,6 +218,9 @@ def update_config(config_path, misc_settings, server_name, server_settings):
             elif section == "servers" and subsection == server_name and key in server_settings:
                 result.append(f"{key} = {server_settings[key]}\n")
                 server_seen.add(key)
+            elif section == "categories" and subsection == category_name and key in category_settings:
+                result.append(f"{key} = {category_settings[key]}\n")
+                category_seen.add(key)
             else:
                 result.append(line)
         else:
@@ -201,6 +237,14 @@ def update_config(config_path, misc_settings, server_name, server_settings):
             for k, v in server_settings.items():
                 result.append(f"{k} = {v}\n")
             our_server_found = True
+    elif section == "categories":
+        if subsection == category_name:
+            flush_missing_category()
+        if not our_category_found:
+            result.append(f"[[{category_name}]]\n")
+            for k, v in category_settings.items():
+                result.append(f"{k} = {v}\n")
+            our_category_found = True
 
     # Add entire sections that were not present in the file at all
     if not misc_section_found:
@@ -214,20 +258,26 @@ def update_config(config_path, misc_settings, server_name, server_settings):
         for k, v in server_settings.items():
             result.append(f"{k} = {v}\n")
 
+    if not categories_section_found:
+        result.append("\n[categories]\n")
+        result.append(f"[[{category_name}]]\n")
+        for k, v in category_settings.items():
+            result.append(f"{k} = {v}\n")
+
     with open(config_path, "w") as f:
         f.writelines(result)
 
 
 def main():
-    misc_settings, server_name, server_settings = get_env_config()
+    misc_settings, server_name, server_settings, category_name, category_settings = get_env_config()
 
     if os.path.exists(CONFIG_PATH):
         log(f"Updating managed settings in {CONFIG_PATH}...")
-        update_config(CONFIG_PATH, misc_settings, server_name, server_settings)
+        update_config(CONFIG_PATH, misc_settings, server_name, server_settings, category_name, category_settings)
         log(f"Updated {CONFIG_PATH}.")
     else:
         log(f"Generating {CONFIG_PATH}...")
-        generate_config(CONFIG_PATH, misc_settings, server_name, server_settings)
+        generate_config(CONFIG_PATH, misc_settings, server_name, server_settings, category_name, category_settings)
         log(f"Generated {CONFIG_PATH} with wizard_completed=1 and Usenet server configured.")
 
     uid = int(os.environ.get("PUID", "1000"))

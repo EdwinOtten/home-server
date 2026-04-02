@@ -216,8 +216,12 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         "apiKey": sabnzbd_api_key,
     }
     desired_optional = {
-        "category": "prowlarr",
+        "category": "default",
     }
+    desired_category_mappings = [
+        {"clientCategory": "movies", "categories": [2000]},
+        {"clientCategory": "tv", "categories": [5000]},
+    ]
 
     if existing is None:
         log("Fetching SABnzbd download client schema...")
@@ -251,6 +255,7 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
 
         sabnzbd_schema["name"] = "SABnzbd"
         sabnzbd_schema["enable"] = True
+        sabnzbd_schema["categories"] = desired_category_mappings
 
         log("Adding SABnzbd download client...")
         try:
@@ -276,6 +281,11 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
                 log(f"WARNING: Existing SABnzbd client missing optional field '{field_name}'.")
                 continue
             needs_update = True
+
+    current_mappings = existing.get("categories")
+    if current_mappings != desired_category_mappings:
+        existing["categories"] = desired_category_mappings
+        needs_update = True
 
     if not needs_update:
         log("SABnzbd download client already configured, skipping.")
