@@ -97,6 +97,8 @@ services:
     ports:
       - 18080:8080
     restart: unless-stopped
+    networks:
+      - media-server-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
       interval: 30s
@@ -228,6 +230,9 @@ services:
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
       - NZBGEEK_API_KEY=${NZBGEEK_API_KEY:?error}
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
     volumes:
       - type: volume
         source: media-server-storage-root
