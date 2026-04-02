@@ -178,6 +178,13 @@ def get_field_value(fields, field_name):
     return None
 
 
+def has_field(fields, field_name):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            return True
+    return False
+
+
 def set_field_value(fields, field_name, field_value):
     for field in fields:
         if normalize_name(field.get("name")) == normalize_name(field_name):
@@ -196,7 +203,24 @@ def field_value_matches(field_name, current_value, desired_value):
         if current_port and desired_port:
             return current_port == desired_port
 
+    if normalize_name(field_name) == "baseurl":
+        return str(current_value).rstrip("/") == str(desired_value).rstrip("/")
+
     return str(current_value) == str(desired_value)
+
+
+def build_application_base_url(app_host, app_port):
+    host = str(app_host or "").strip()
+    if not host:
+        return ""
+
+    if host.startswith("http://") or host.startswith("https://"):
+        return host.rstrip("/")
+
+    port = str(app_port or "").strip()
+    if port:
+        return f"http://{host}:{port}"
+    return f"http://{host}"
 
 
 def normalize_category_mappings(mappings):
@@ -346,11 +370,10 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
             existing = application
             break
 
-    desired = {
-        "host": app_host,
-        "port": str(app_port),
-        "apiKey": app_api_key,
-    }
+    desired_api_key = app_api_key
+    desired_host = app_host
+    desired_port = str(app_port)
+    desired_base_url = build_application_base_url(app_host, app_port)
 
     if existing is None:
         log(f"Fetching {application_name} application schema...")
@@ -375,10 +398,29 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
             return
 
         fields = app_schema.get("fields", [])
-        for field_name, field_value in desired.items():
-            if not set_field_value(fields, field_name, field_value):
-                log(f"WARNING: {application_name} schema missing expected field '{field_name}'.")
-                return
+
+        if not set_field_value(fields, "apiKey", desired_api_key):
+            log(f"WARNING: {application_name} schema missing expected field 'apiKey'.")
+            return
+
+        has_host_field = False
+        if has_field(fields, "host"):
+            has_host_field = set_field_value(fields, "host", desired_host)
+        elif has_field(fields, "hostname"):
+            has_host_field = set_field_value(fields, "hostname", desired_host)
+
+        has_port_field = set_field_value(fields, "port", desired_port) if has_field(fields, "port") else False
+        has_base_url_field = (
+            set_field_value(fields, "baseUrl", desired_base_url) if has_field(fields, "baseUrl") else False
+        )
+
+        if not (has_base_url_field or has_host_field):
+            log(f"WARNING: {application_name} schema missing expected connection field ('baseUrl' or 'host').")
+            return
+
+        if has_host_field and not has_port_field:
+            log(f"WARNING: {application_name} schema missing expected field 'port'.")
+            return
 
         app_schema["name"] = application_name
 
@@ -392,13 +434,51 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
 
     fields = existing.get("fields", [])
     needs_update = False
-    for field_name, desired_value in desired.items():
-        current_value = get_field_value(fields, field_name)
-        if not field_value_matches(field_name, current_value, desired_value):
+    current_api_key = get_field_value(fields, "apiKey")
+    if not field_value_matches("apiKey", current_api_key, desired_api_key):
+        needs_update = True
+        if not set_field_value(fields, "apiKey", desired_api_key):
+            log(f"WARNING: Existing {application_name} application missing expected field 'apiKey'.")
+            return
+
+    current_host_value = get_field_value(fields, "host")
+    current_hostname_value = get_field_value(fields, "hostname")
+    current_port = get_field_value(fields, "port")
+    current_base_url = get_field_value(fields, "baseUrl")
+
+    has_host_field = current_host_value is not None or current_hostname_value is not None
+    has_port_field = current_port is not None
+    has_base_url_field = current_base_url is not None
+
+    if has_host_field:
+        current_host = current_host_value
+        host_field_name = "host"
+        if current_host is None:
+            current_host = current_hostname_value
+            host_field_name = "hostname"
+        if not field_value_matches(host_field_name, current_host, desired_host):
             needs_update = True
-            if not set_field_value(fields, field_name, desired_value):
-                log(f"WARNING: Existing {application_name} application missing expected field '{field_name}'.")
+            if not set_field_value(fields, host_field_name, desired_host):
+                log(f"WARNING: Existing {application_name} application missing expected field '{host_field_name}'.")
                 return
+
+    if has_port_field:
+        if not field_value_matches("port", current_port, desired_port):
+            needs_update = True
+            if not set_field_value(fields, "port", desired_port):
+                log(f"WARNING: Existing {application_name} application missing expected field 'port'.")
+                return
+
+    if has_base_url_field:
+        if not field_value_matches("baseUrl", current_base_url, desired_base_url):
+            needs_update = True
+            if not set_field_value(fields, "baseUrl", desired_base_url):
+                log(f"WARNING: Existing {application_name} application missing expected field 'baseUrl'.")
+                return
+
+    if not (has_base_url_field or has_host_field):
+        log(f"WARNING: Existing {application_name} application missing expected connection field ('baseUrl' or 'host').")
+        return
 
     if not needs_update:
         log(f"{application_name} application already configured, skipping.")
