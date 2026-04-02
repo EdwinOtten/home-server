@@ -272,8 +272,10 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
     for field_name, desired_value in desired_optional.items():
         current_value = get_field_value(fields, field_name)
         if current_value is None or not field_value_matches(field_name, current_value, desired_value):
-            if set_field_value(fields, field_name, desired_value):
-                needs_update = True
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing SABnzbd client missing optional field '{field_name}'.")
+                continue
+            needs_update = True
 
     if not needs_update:
         log("SABnzbd download client already configured, skipping.")
