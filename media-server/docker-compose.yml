@@ -233,6 +233,12 @@ services:
       - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
       - SABNZBD_HOST=sabnzbd
       - SABNZBD_PORT=8080
+      - RADARR_API_KEY=${RADARR_API_KEY:?error}
+      - RADARR_HOST=radarr
+      - RADARR_PORT=7878
+      - SONARR_API_KEY=${SONARR_API_KEY:?error}
+      - SONARR_HOST=sonarr
+      - SONARR_PORT=8989
     volumes:
       - type: volume
         source: media-server-storage-root

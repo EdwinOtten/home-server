@@ -17,6 +17,9 @@
 #   3. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
+#   4. Upserts Radarr and Sonarr applications (idempotent):
+#      - Creates each app if it does not exist
+#      - Updates host, port and apiKey if they changed
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -324,6 +327,96 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         log("WARNING: Could not update SABnzbd download client.")
 
 
+def upsert_application(prowlarr_api_key, implementation, application_name, app_api_key, app_host, app_port):
+    log(f"Checking existing {application_name} application...")
+    try:
+        applications = api_get("/api/v1/applications", prowlarr_api_key)
+    except Exception:
+        log("WARNING: Could not fetch applications.")
+        return
+
+    existing = None
+    target_name = normalize_name(application_name)
+    target_implementation = normalize_name(implementation)
+    for application in applications:
+        if (
+            normalize_name(application.get("implementation")) == target_implementation
+            or normalize_name(application.get("name")) == target_name
+        ):
+            existing = application
+            break
+
+    desired = {
+        "host": app_host,
+        "port": str(app_port),
+        "apiKey": app_api_key,
+    }
+
+    if existing is None:
+        log(f"Fetching {application_name} application schema...")
+        try:
+            schemas = api_get("/api/v1/applications/schema", prowlarr_api_key)
+        except Exception:
+            log("WARNING: Could not fetch application schemas.")
+            return
+
+        app_schema = None
+        for schema in schemas:
+            if (
+                normalize_name(schema.get("implementation")) == target_implementation
+                or normalize_name(schema.get("name")) == target_name
+                or normalize_name(schema.get("sortName")) == target_name
+            ):
+                app_schema = schema
+                break
+
+        if app_schema is None:
+            log(f"WARNING: {application_name} schema not found in available application schemas.")
+            return
+
+        fields = app_schema.get("fields", [])
+        for field_name, field_value in desired.items():
+            if not set_field_value(fields, field_name, field_value):
+                log(f"WARNING: {application_name} schema missing expected field '{field_name}'.")
+                return
+
+        app_schema["name"] = application_name
+
+        log(f"Adding {application_name} application...")
+        try:
+            api_post("/api/v1/applications", app_schema, prowlarr_api_key)
+            log(f"{application_name} application added.")
+        except Exception:
+            log(f"WARNING: Could not add {application_name} application.")
+        return
+
+    fields = existing.get("fields", [])
+    needs_update = False
+    for field_name, desired_value in desired.items():
+        current_value = get_field_value(fields, field_name)
+        if not field_value_matches(field_name, current_value, desired_value):
+            needs_update = True
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing {application_name} application missing expected field '{field_name}'.")
+                return
+
+    if not needs_update:
+        log(f"{application_name} application already configured, skipping.")
+        return
+
+    existing_id = existing.get("id")
+    if not existing_id:
+        log(f"WARNING: Existing {application_name} application has no id; cannot update.")
+        return
+
+    log(f"Updating {application_name} application...")
+    try:
+        api_put(f"/api/v1/applications/{existing_id}", existing, prowlarr_api_key)
+        log(f"{application_name} application updated.")
+    except Exception:
+        log(f"WARNING: Could not update {application_name} application.")
+
+
 def main():
     prowlarr_api_key = os.environ.get("PROWLARR__AUTH__APIKEY", "")
     if not prowlarr_api_key:
@@ -340,12 +433,28 @@ def main():
         log("ERROR: SABNZBD_API_KEY is not set. Aborting.")
         sys.exit(1)
 
+    radarr_api_key = os.environ.get("RADARR_API_KEY", "")
+    if not radarr_api_key:
+        log("ERROR: RADARR_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
+    sonarr_api_key = os.environ.get("SONARR_API_KEY", "")
+    if not sonarr_api_key:
+        log("ERROR: SONARR_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
     sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
     sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
+    radarr_host = os.environ.get("RADARR_HOST", "radarr")
+    radarr_port = os.environ.get("RADARR_PORT", "7878")
+    sonarr_host = os.environ.get("SONARR_HOST", "sonarr")
+    sonarr_port = os.environ.get("SONARR_PORT", "8989")
 
     wait_for_prowlarr(prowlarr_api_key)
     add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key)
     upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
+    upsert_application(prowlarr_api_key, "radarr", "Radarr", radarr_api_key, radarr_host, radarr_port)
+    upsert_application(prowlarr_api_key, "sonarr", "Sonarr", sonarr_api_key, sonarr_host, sonarr_port)
     log("Init complete.")
 
 
