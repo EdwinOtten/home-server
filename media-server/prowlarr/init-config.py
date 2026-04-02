@@ -215,6 +215,9 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         "port": str(sabnzbd_port),
         "apiKey": sabnzbd_api_key,
     }
+    desired_optional = {
+        "category": "",
+    }
 
     if existing is None:
         log("Fetching SABnzbd download client schema...")
@@ -243,6 +246,8 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
             if not set_field_value(fields, field_name, field_value):
                 log(f"WARNING: SABnzbd schema missing expected field '{field_name}'.")
                 return
+        for field_name, field_value in desired_optional.items():
+            set_field_value(fields, field_name, field_value)
 
         sabnzbd_schema["name"] = "SABnzbd"
         sabnzbd_schema["enable"] = True
@@ -264,6 +269,11 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
             if not set_field_value(fields, field_name, desired_value):
                 log(f"WARNING: Existing SABnzbd client missing expected field '{field_name}'.")
                 return
+    for field_name, desired_value in desired_optional.items():
+        current_value = get_field_value(fields, field_name)
+        if current_value is not None and not field_value_matches(field_name, current_value, desired_value):
+            needs_update = True
+            set_field_value(fields, field_name, desired_value)
 
     if not needs_update:
         log("SABnzbd download client already configured, skipping.")
