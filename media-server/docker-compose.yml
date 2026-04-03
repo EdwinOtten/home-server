@@ -10,10 +10,19 @@ services:
       - media-server-storage-root:/mnt/storage
     # This command creates all subdirectories at once and sets correct ownership
     command: >
-      sh -c "mkdir -p /mnt/storage/media/{movies,series} 
-      /mnt/storage/media/downloads/usenet/{complete,incomplete} 
-      /mnt/storage/media/downloads/torrent/{complete,incomplete} 
-      /mnt/storage/services/{sonarr,radarr,configarr,prowlarr,bazarr,seerr,sabnzbd} 
+      sh -c "mkdir -p /mnt/storage/media/movies 
+      /mnt/storage/media/series 
+      /mnt/storage/media/downloads/usenet/complete 
+      /mnt/storage/media/downloads/usenet/incomplete 
+      /mnt/storage/media/downloads/torrent/complete 
+      /mnt/storage/media/downloads/torrent/incomplete 
+      /mnt/storage/services/sonarr 
+      /mnt/storage/services/radarr 
+      /mnt/storage/services/configarr 
+      /mnt/storage/services/prowlarr 
+      /mnt/storage/services/bazarr 
+      /mnt/storage/services/seerr 
+      /mnt/storage/services/sabnzbd 
       /mnt/storage/services/jellyfin/data 
       && chown -R ${PUID}:${PGID} /mnt/storage && 
       chmod -R u+rwX,go-wx /mnt/storage"
