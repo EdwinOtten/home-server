@@ -425,6 +425,36 @@ services:
       jellyfin:
         condition: service_healthy
 
+  # Configure Seerr through its API after first start so setup is unattended.
+  seerr-init:
+    image: python:3.12-alpine
+    container_name: seerr-init
+    environment:
+      - TZ=${TZ?:error}
+      - SEERR_URL=http://seerr:5055
+      - SEERR_EMAIL=info@edwinotten.com
+      - SEERR_API_KEY=${SEERR_API_KEY:?error}
+      - JELLYFIN_ADMIN_USER=${JELLYFIN_ADMIN_USER:?error}
+      - JELLYFIN_ADMIN_PASSWORD=${JELLYFIN_ADMIN_PASSWORD:?error}
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+      - RADARR_API_KEY=${RADARR_API_KEY:?error}
+      - SONARR_API_KEY=${SONARR_API_KEY:?error}
+    volumes:
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+    command: ["python3", "/opt/seerr/init-config.py"]
+    restart: "no"
+    networks:
+      - media-server-network
+    depends_on:
+      seerr:
+        condition: service_healthy
+      jellyfin:
+        condition: service_healthy
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+
 networks:
   media-server-network:
     driver: bridge
