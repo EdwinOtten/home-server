@@ -19,7 +19,7 @@
 #      - Updates host, port and apiKey if they changed
 #   4. Upserts Radarr and Sonarr applications (idempotent):
 #      - Creates each app if it does not exist
-#      - Updates host, port and apiKey if they changed
+#      - Updates host/baseUrl, apiKey and prowlarrUrl if they changed
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -30,6 +30,7 @@ import time
 import urllib.request
 
 PROWLARR_URL = "http://localhost:9696"
+PROWLARR_SERVICE_URL_DEFAULT = "http://prowlarr:9696"
 PREFIX = "[prowlarr-init]"
 
 
@@ -351,7 +352,15 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         log("WARNING: Could not update SABnzbd download client.")
 
 
-def upsert_application(prowlarr_api_key, implementation, application_name, app_api_key, app_host, app_port):
+def upsert_application(
+    prowlarr_api_key,
+    implementation,
+    application_name,
+    app_api_key,
+    app_host,
+    app_port,
+    prowlarr_service_url,
+):
     log(f"Checking existing {application_name} application...")
     try:
         applications = api_get("/api/v1/applications", prowlarr_api_key)
@@ -374,6 +383,9 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
     desired_host = app_host
     desired_port = str(app_port)
     desired_base_url = build_application_base_url(app_host, app_port)
+    desired_prowlarr_url = str(prowlarr_service_url or "").strip().rstrip("/")
+    if not desired_prowlarr_url:
+        desired_prowlarr_url = PROWLARR_SERVICE_URL_DEFAULT
 
     if existing is None:
         log(f"Fetching {application_name} application schema...")
@@ -401,6 +413,10 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
 
         if not set_field_value(fields, "apiKey", desired_api_key):
             log(f"WARNING: {application_name} schema missing expected field 'apiKey'.")
+            return
+
+        if has_field(fields, "prowlarrUrl") and not set_field_value(fields, "prowlarrUrl", desired_prowlarr_url):
+            log(f"WARNING: Failed to set {application_name} field 'prowlarrUrl'.")
             return
 
         has_host_field = False
@@ -439,6 +455,13 @@ def upsert_application(prowlarr_api_key, implementation, application_name, app_a
         needs_update = True
         if not set_field_value(fields, "apiKey", desired_api_key):
             log(f"WARNING: Existing {application_name} application missing expected field 'apiKey'.")
+            return
+
+    current_prowlarr_url = get_field_value(fields, "prowlarrUrl")
+    if current_prowlarr_url is not None and not field_value_matches("prowlarrUrl", current_prowlarr_url, desired_prowlarr_url):
+        needs_update = True
+        if not set_field_value(fields, "prowlarrUrl", desired_prowlarr_url):
+            log(f"WARNING: Failed to update {application_name} field 'prowlarrUrl'.")
             return
 
     current_host_value = get_field_value(fields, "host")
@@ -529,12 +552,29 @@ def main():
     radarr_port = os.environ.get("RADARR_PORT", "7878")
     sonarr_host = os.environ.get("SONARR_HOST", "sonarr")
     sonarr_port = os.environ.get("SONARR_PORT", "8989")
+    prowlarr_service_url = os.environ.get("PROWLARR_SERVICE_URL", PROWLARR_SERVICE_URL_DEFAULT)
 
     wait_for_prowlarr(prowlarr_api_key)
     add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key)
     upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
-    upsert_application(prowlarr_api_key, "radarr", "Radarr", radarr_api_key, radarr_host, radarr_port)
-    upsert_application(prowlarr_api_key, "sonarr", "Sonarr", sonarr_api_key, sonarr_host, sonarr_port)
+    upsert_application(
+        prowlarr_api_key,
+        "radarr",
+        "Radarr",
+        radarr_api_key,
+        radarr_host,
+        radarr_port,
+        prowlarr_service_url,
+    )
+    upsert_application(
+        prowlarr_api_key,
+        "sonarr",
+        "Sonarr",
+        sonarr_api_key,
+        sonarr_host,
+        sonarr_port,
+        prowlarr_service_url,
+    )
     log("Init complete.")
 
 
