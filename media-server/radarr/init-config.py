@@ -15,7 +15,7 @@
 #      - replaceIllegalCharacters: true
 #      - standardMovieFormat: {Movie Title} ({Release Year})
 #      - movieFolderFormat: {Movie Title} ({Release Year})
-#   4. Adds /movies as a root folder if it does not already exist.
+#   4. Adds /media/movies as a root folder if it does not already exist.
 #   5. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
@@ -278,7 +278,7 @@ def configure_naming(api_key):
 
 
 def add_root_folder(api_key):
-    root_folder_path = "/movies"
+    root_folder_path = "/media/movies"
     log(f"Checking root folders...")
     try:
         folders = api_get("/api/v3/rootfolder", api_key)

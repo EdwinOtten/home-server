@@ -10,22 +10,13 @@ services:
       - media-server-storage-root:/mnt/storage
     # This command creates all subdirectories at once and sets correct ownership
     command: >
-      sh -c "mkdir -p /mnt/storage/media/movies 
-      /mnt/storage/media/series 
-      /mnt/storage/downloads/usenet/complete 
-      /mnt/storage/downloads/usenet/incomplete 
-      /mnt/storage/downloads/torrent/complete 
-      /mnt/storage/downloads/torrent/incomplete 
-      /mnt/storage/services/sonarr 
-      /mnt/storage/services/radarr 
-      /mnt/storage/services/configarr 
-      /mnt/storage/services/prowlarr 
-      /mnt/storage/services/bazarr 
+      sh -c "mkdir -p /mnt/storage/media/{movies,series} 
+      /mnt/storage/media/downloads/usenet/{complete,incomplete} 
+      /mnt/storage/media/downloads/torrent/{complete,incomplete} 
+      /mnt/storage/services/{sonarr,radarr,configarr,prowlarr,bazarr,seerr,sabnzbd} 
       /mnt/storage/services/jellyfin/data 
-      /mnt/storage/services/seerr 
-      /mnt/storage/services/sabnzbd 
-      && chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/downloads /mnt/storage/services &&
-      chmod -R u+rwX,go-wx /mnt/storage/media /mnt/storage/downloads /mnt/storage/services"
+      && chown -R ${PUID}:${PGID} /mnt/storage && 
+      chmod -R u+rwX,go-wx /mnt/storage"
     healthcheck:
       disable: true
 
@@ -41,14 +32,14 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 #      - type: volume
 #        source: media-server-storage-root
-#        target: /complete
+#        target: /media/downloads/torrent/complete
 #        volume:
-#          subpath: downloads/torrent/complete
+#          subpath: media/downloads/torrent/complete
 #      - type: volume
 #        source: media-server-storage-root
-#        target: /incomplete
+#        target: /media/downloads/torrent/incomplete
 #        volume:
-#          subpath: downloads/torrent/incomplete
+#          subpath: media/downloads/torrent/incomplete
 #      - type: volume
 #        source: media-server-storage-root
 #        target: /config
@@ -88,14 +79,14 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - type: volume
         source: media-server-storage-root
-        target: /usenet-complete
+        target: /media/downloads/usenet/complete
         volume:
-          subpath: downloads/usenet/complete
+          subpath: media/downloads/usenet/complete
       - type: volume
         source: media-server-storage-root
-        target: /usenet-incomplete
+        target: /media/downloads/usenet/incomplete
         volume:
-          subpath: downloads/usenet/incomplete
+          subpath: media/downloads/usenet/incomplete
       - type: volume
         source: media-server-storage-root
         target: /config
@@ -140,14 +131,9 @@ services:
     volumes:
       - type: volume
         source: media-server-storage-root
-        target: /usenet-complete
+        target: /media
         volume:
-          subpath: downloads/usenet/complete
-      - type: volume
-        source: media-server-storage-root
-        target: /series
-        volume:
-          subpath: media/series
+          subpath: media
       - type: volume
         source: media-server-storage-root
         target: /config
@@ -194,14 +180,9 @@ services:
     volumes:
       - type: volume
         source: media-server-storage-root
-        target: /usenet-complete
+        target: /media
         volume:
-          subpath: downloads/usenet/complete
-      - type: volume
-        source: media-server-storage-root
-        target: /movies
-        volume:
-          subpath: media/movies
+          subpath: media
       - type: volume
         source: media-server-storage-root
         target: /config
