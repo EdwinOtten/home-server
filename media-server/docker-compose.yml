@@ -12,8 +12,10 @@ services:
     command: >
       sh -c "mkdir -p /mnt/storage/media/movies 
       /mnt/storage/media/series 
-      /mnt/storage/downloads/nzb 
-      /mnt/storage/downloads/torrent 
+      /mnt/storage/downloads/usenet/complete 
+      /mnt/storage/downloads/usenet/incomplete 
+      /mnt/storage/downloads/torrent/complete 
+      /mnt/storage/downloads/torrent/incomplete 
       /mnt/storage/services/sonarr 
       /mnt/storage/services/radarr 
       /mnt/storage/services/configarr 
@@ -39,9 +41,14 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 #      - type: volume
 #        source: media-server-storage-root
-#        target: /data
+#        target: /complete
 #        volume:
-#          subpath: downloads/torrent
+#          subpath: downloads/torrent/complete
+#      - type: volume
+#        source: media-server-storage-root
+#        target: /incomplete
+#        volume:
+#          subpath: downloads/torrent/incomplete
 #      - type: volume
 #        source: media-server-storage-root
 #        target: /config
@@ -81,9 +88,14 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - type: volume
         source: media-server-storage-root
-        target: /data
+        target: /usenet-complete
         volume:
-          subpath: downloads/nzb
+          subpath: downloads/usenet/complete
+      - type: volume
+        source: media-server-storage-root
+        target: /usenet-incomplete
+        volume:
+          subpath: downloads/usenet/incomplete
       - type: volume
         source: media-server-storage-root
         target: /config
@@ -128,9 +140,14 @@ services:
     volumes:
       - type: volume
         source: media-server-storage-root
-        target: /media
+        target: /usenet-complete
         volume:
-          subpath: media
+          subpath: downloads/usenet/complete
+      - type: volume
+        source: media-server-storage-root
+        target: /series
+        volume:
+          subpath: media/series
       - type: volume
         source: media-server-storage-root
         target: /config
@@ -175,9 +192,14 @@ services:
     volumes:
       - type: volume
         source: media-server-storage-root
-        target: /media
+        target: /usenet-complete
         volume:
-          subpath: media
+          subpath: downloads/usenet/complete
+      - type: volume
+        source: media-server-storage-root
+        target: /movies
+        volume:
+          subpath: media/movies
       - type: volume
         source: media-server-storage-root
         target: /config

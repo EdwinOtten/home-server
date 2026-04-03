@@ -18,7 +18,7 @@
 #      - animeEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
 #      - seriesFolderFormat: {Series TitleYear}
 #      - seasonFolderFormat: Season {season}
-#   3. Adds /media/series as a root folder if it does not already exist.
+#   3. Adds /series as a root folder if it does not already exist.
 #   4. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
@@ -259,7 +259,7 @@ def configure_naming(api_key):
 
 
 def add_root_folder(api_key):
-    root_folder_path = "/media/series"
+    root_folder_path = "/series"
     log("Checking root folders...")
     try:
         folders = api_get("/api/v3/rootfolder", api_key)
