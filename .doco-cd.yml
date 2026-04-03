@@ -1,5 +1,5 @@
 name: media-server
-reference: copilot/update-init-script-prowlarr
+reference: copilot/remove-download-client-prowlarr
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
