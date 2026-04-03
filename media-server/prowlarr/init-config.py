@@ -17,6 +17,9 @@
 #   3. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
+#   4. Upserts Radarr and Sonarr applications (idempotent):
+#      - Creates each app if it does not exist
+#      - Updates host/baseUrl, apiKey and prowlarrUrl if they changed
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -27,6 +30,7 @@ import time
 import urllib.request
 
 PROWLARR_URL = "http://localhost:9696"
+PROWLARR_SERVICE_URL_DEFAULT = "http://prowlarr:9696"
 PREFIX = "[prowlarr-init]"
 
 
@@ -175,6 +179,13 @@ def get_field_value(fields, field_name):
     return None
 
 
+def has_field(fields, field_name):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            return True
+    return False
+
+
 def set_field_value(fields, field_name, field_value):
     for field in fields:
         if normalize_name(field.get("name")) == normalize_name(field_name):
@@ -193,7 +204,24 @@ def field_value_matches(field_name, current_value, desired_value):
         if current_port and desired_port:
             return current_port == desired_port
 
+    if normalize_name(field_name) == "baseurl":
+        return str(current_value).rstrip("/") == str(desired_value).rstrip("/")
+
     return str(current_value) == str(desired_value)
+
+
+def build_application_base_url(app_host, app_port):
+    host = str(app_host or "").strip()
+    if not host:
+        return ""
+
+    if host.startswith("http://") or host.startswith("https://"):
+        return host.rstrip("/")
+
+    port = str(app_port or "").strip()
+    if port:
+        return f"http://{host}:{port}"
+    return f"http://{host}"
 
 
 def normalize_category_mappings(mappings):
@@ -324,6 +352,174 @@ def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_ho
         log("WARNING: Could not update SABnzbd download client.")
 
 
+def upsert_application(
+    prowlarr_api_key,
+    implementation,
+    application_name,
+    app_api_key,
+    app_host,
+    app_port,
+    prowlarr_service_url,
+):
+    log(f"Checking existing {application_name} application...")
+    try:
+        applications = api_get("/api/v1/applications", prowlarr_api_key)
+    except Exception:
+        log("WARNING: Could not fetch applications.")
+        return
+
+    existing = None
+    target_name = normalize_name(application_name)
+    target_implementation = normalize_name(implementation)
+    for application in applications:
+        if (
+            normalize_name(application.get("implementation")) == target_implementation
+            or normalize_name(application.get("name")) == target_name
+        ):
+            existing = application
+            break
+
+    desired_api_key = app_api_key
+    desired_host = app_host
+    desired_port = str(app_port)
+    desired_base_url = build_application_base_url(app_host, app_port)
+    desired_prowlarr_url = str(prowlarr_service_url or "").strip().rstrip("/")
+    if not desired_prowlarr_url:
+        desired_prowlarr_url = PROWLARR_SERVICE_URL_DEFAULT
+
+    if existing is None:
+        log(f"Fetching {application_name} application schema...")
+        try:
+            schemas = api_get("/api/v1/applications/schema", prowlarr_api_key)
+        except Exception:
+            log("WARNING: Could not fetch application schemas.")
+            return
+
+        app_schema = None
+        for schema in schemas:
+            if (
+                normalize_name(schema.get("implementation")) == target_implementation
+                or normalize_name(schema.get("name")) == target_name
+                or normalize_name(schema.get("sortName")) == target_name
+            ):
+                app_schema = schema
+                break
+
+        if app_schema is None:
+            log(f"WARNING: {application_name} schema not found in available application schemas.")
+            return
+
+        fields = app_schema.get("fields", [])
+
+        if not set_field_value(fields, "apiKey", desired_api_key):
+            log(f"WARNING: {application_name} schema missing expected field 'apiKey'.")
+            return
+
+        if has_field(fields, "prowlarrUrl") and not set_field_value(fields, "prowlarrUrl", desired_prowlarr_url):
+            log(f"WARNING: Failed to set {application_name} field 'prowlarrUrl'.")
+            return
+
+        has_host_field = False
+        if has_field(fields, "host"):
+            has_host_field = set_field_value(fields, "host", desired_host)
+        elif has_field(fields, "hostname"):
+            has_host_field = set_field_value(fields, "hostname", desired_host)
+
+        has_port_field = set_field_value(fields, "port", desired_port) if has_field(fields, "port") else False
+        has_base_url_field = (
+            set_field_value(fields, "baseUrl", desired_base_url) if has_field(fields, "baseUrl") else False
+        )
+
+        if not (has_base_url_field or has_host_field):
+            log(f"WARNING: {application_name} schema missing expected connection field ('baseUrl' or 'host').")
+            return
+
+        if has_host_field and not has_port_field:
+            log(f"WARNING: {application_name} schema missing expected field 'port'.")
+            return
+
+        app_schema["name"] = application_name
+
+        log(f"Adding {application_name} application...")
+        try:
+            api_post("/api/v1/applications", app_schema, prowlarr_api_key)
+            log(f"{application_name} application added.")
+        except Exception:
+            log(f"WARNING: Could not add {application_name} application.")
+        return
+
+    fields = existing.get("fields", [])
+    needs_update = False
+    current_api_key = get_field_value(fields, "apiKey")
+    if not field_value_matches("apiKey", current_api_key, desired_api_key):
+        needs_update = True
+        if not set_field_value(fields, "apiKey", desired_api_key):
+            log(f"WARNING: Existing {application_name} application missing expected field 'apiKey'.")
+            return
+
+    current_prowlarr_url = get_field_value(fields, "prowlarrUrl")
+    if current_prowlarr_url is not None and not field_value_matches("prowlarrUrl", current_prowlarr_url, desired_prowlarr_url):
+        needs_update = True
+        if not set_field_value(fields, "prowlarrUrl", desired_prowlarr_url):
+            log(f"WARNING: Failed to update {application_name} field 'prowlarrUrl'.")
+            return
+
+    current_host_value = get_field_value(fields, "host")
+    current_hostname_value = get_field_value(fields, "hostname")
+    current_port = get_field_value(fields, "port")
+    current_base_url = get_field_value(fields, "baseUrl")
+
+    has_host_field = current_host_value is not None or current_hostname_value is not None
+    has_port_field = current_port is not None
+    has_base_url_field = current_base_url is not None
+
+    if has_host_field:
+        current_host = current_host_value
+        host_field_name = "host"
+        if current_host is None:
+            current_host = current_hostname_value
+            host_field_name = "hostname"
+        if not field_value_matches(host_field_name, current_host, desired_host):
+            needs_update = True
+            if not set_field_value(fields, host_field_name, desired_host):
+                log(f"WARNING: Existing {application_name} application missing expected field '{host_field_name}'.")
+                return
+
+    if has_port_field:
+        if not field_value_matches("port", current_port, desired_port):
+            needs_update = True
+            if not set_field_value(fields, "port", desired_port):
+                log(f"WARNING: Existing {application_name} application missing expected field 'port'.")
+                return
+
+    if has_base_url_field:
+        if not field_value_matches("baseUrl", current_base_url, desired_base_url):
+            needs_update = True
+            if not set_field_value(fields, "baseUrl", desired_base_url):
+                log(f"WARNING: Existing {application_name} application missing expected field 'baseUrl'.")
+                return
+
+    if not (has_base_url_field or has_host_field):
+        log(f"WARNING: Existing {application_name} application missing expected connection field ('baseUrl' or 'host').")
+        return
+
+    if not needs_update:
+        log(f"{application_name} application already configured, skipping.")
+        return
+
+    existing_id = existing.get("id")
+    if not existing_id:
+        log(f"WARNING: Existing {application_name} application has no id; cannot update.")
+        return
+
+    log(f"Updating {application_name} application...")
+    try:
+        api_put(f"/api/v1/applications/{existing_id}", existing, prowlarr_api_key)
+        log(f"{application_name} application updated.")
+    except Exception:
+        log(f"WARNING: Could not update {application_name} application.")
+
+
 def main():
     prowlarr_api_key = os.environ.get("PROWLARR__AUTH__APIKEY", "")
     if not prowlarr_api_key:
@@ -340,12 +536,45 @@ def main():
         log("ERROR: SABNZBD_API_KEY is not set. Aborting.")
         sys.exit(1)
 
+    radarr_api_key = os.environ.get("RADARR_API_KEY", "")
+    if not radarr_api_key:
+        log("ERROR: RADARR_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
+    sonarr_api_key = os.environ.get("SONARR_API_KEY", "")
+    if not sonarr_api_key:
+        log("ERROR: SONARR_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
     sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
     sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
+    radarr_host = os.environ.get("RADARR_HOST", "radarr")
+    radarr_port = os.environ.get("RADARR_PORT", "7878")
+    sonarr_host = os.environ.get("SONARR_HOST", "sonarr")
+    sonarr_port = os.environ.get("SONARR_PORT", "8989")
+    prowlarr_service_url = os.environ.get("PROWLARR_SERVICE_URL", PROWLARR_SERVICE_URL_DEFAULT)
 
     wait_for_prowlarr(prowlarr_api_key)
     add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key)
     upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
+    upsert_application(
+        prowlarr_api_key,
+        "radarr",
+        "Radarr",
+        radarr_api_key,
+        radarr_host,
+        radarr_port,
+        prowlarr_service_url,
+    )
+    upsert_application(
+        prowlarr_api_key,
+        "sonarr",
+        "Sonarr",
+        sonarr_api_key,
+        sonarr_host,
+        sonarr_port,
+        prowlarr_service_url,
+    )
     log("Init complete.")
 
 
