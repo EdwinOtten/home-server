@@ -166,6 +166,9 @@ def add_media_libraries():
     libraries = [
         {"name": "Movies", "collectionType": "movies", "path": "/media/movies"},
         {"name": "Series", "collectionType": "tvshows", "path": "/media/series"},
+        {"name": "Movies (old)", "collectionType": "movies", "path": "/old-downloads/movies"},
+        {"name": "Series (old)", "collectionType": "tvshows", "path": "/old-downloads/series"},
+        {"name": "Music (old)", "collectionType": "music", "path": "/old-downloads/music"},
     ]
 
     for lib in libraries:

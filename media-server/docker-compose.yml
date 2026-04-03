@@ -172,6 +172,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      sabnzbd:
+        condition: service_healthy
 
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
@@ -224,6 +226,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      sabnzbd:
+        condition: service_healthy
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   #configarr:
@@ -422,6 +426,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      jellyfin:
+        condition: service_healthy
 
 networks:
   media-server-network:
