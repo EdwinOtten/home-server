@@ -1,5 +1,5 @@
 name: media-server
-reference: copilot/remove-download-client-prowlarr
+reference: copilot/configure-sonarr-radarr-jellyfin
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
