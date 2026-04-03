@@ -427,7 +427,7 @@ def main():
     sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
     jellyfin_api_key = os.environ.get("JELLYFIN_API_KEY", "")
     if not jellyfin_api_key:
-        log("ERROR: JELLYFIN_API_KEY is not set. Aborting.")
+        log("ERROR: JELLYFIN_API_KEY is empty. Aborting.")
         sys.exit(1)
     jellyfin_host = os.environ.get("JELLYFIN_HOST", "jellyfin")
     jellyfin_port = os.environ.get("JELLYFIN_PORT", "8096")
