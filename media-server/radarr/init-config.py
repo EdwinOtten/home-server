@@ -272,7 +272,7 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         "onMovieFileDelete": True,
         "onMovieFileDeleteForUpgrade": False,
         "onHealthIssue": False,
-        "onHealthRestored": False,
+        "onHealthRestored": True,
         "onApplicationUpdate": False,
         "onManualInteractionRequired": False,
         "includeHealthWarnings": False,
