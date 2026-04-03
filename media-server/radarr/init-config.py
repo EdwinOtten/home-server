@@ -124,8 +124,8 @@ def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnz
     log("Checking existing download clients...")
     try:
         clients = api_get("/api/v3/downloadclient", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch download clients: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch download clients.")
         return
 
     existing = None
@@ -147,8 +147,8 @@ def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnz
         log("Fetching SABnzbd download client schema...")
         try:
             schemas = api_get("/api/v3/downloadclient/schema", api_key)
-        except Exception as exc:
-            log(f"WARNING: Could not fetch download client schemas: {exc}")
+        except Exception:
+            log("WARNING: Could not fetch download client schemas.")
             return
 
         sabnzbd_schema = None
@@ -180,8 +180,8 @@ def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnz
         try:
             api_post("/api/v3/downloadclient", sabnzbd_schema, api_key)
             log("SABnzbd download client added.")
-        except Exception as exc:
-            log(f"WARNING: Could not add SABnzbd download client: {exc}")
+        except Exception:
+            log("WARNING: Could not add SABnzbd download client.")
         return
 
     fields = existing.get("fields", [])
@@ -216,16 +216,16 @@ def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnz
     try:
         api_put(f"/api/v3/downloadclient/{existing_id}", existing, api_key)
         log("SABnzbd download client updated.")
-    except Exception as exc:
-        log(f"WARNING: Could not update SABnzbd download client: {exc}")
+    except Exception:
+        log("WARNING: Could not update SABnzbd download client.")
 
 
 def configure_media_management(api_key):
     log("Fetching current media management settings...")
     try:
         settings = api_get("/api/v3/config/mediamanagement", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch media management settings: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch media management settings.")
         return
 
     desired = {
@@ -243,16 +243,16 @@ def configure_media_management(api_key):
     try:
         api_put(f"/api/v3/config/mediamanagement/{config_id}", settings, api_key)
         log("Media management settings updated.")
-    except Exception as exc:
-        log(f"WARNING: Could not update media management settings: {exc}")
+    except Exception:
+        log("WARNING: Could not update media management settings.")
 
 
 def configure_naming(api_key):
     log("Fetching current naming settings...")
     try:
         settings = api_get("/api/v3/config/naming", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch naming settings: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch naming settings.")
         return
 
     desired = {
@@ -273,8 +273,8 @@ def configure_naming(api_key):
     try:
         api_put(f"/api/v3/config/naming/{config_id}", settings, api_key)
         log("Naming settings updated.")
-    except Exception as exc:
-        log(f"WARNING: Could not update naming settings: {exc}")
+    except Exception:
+        log("WARNING: Could not update naming settings.")
 
 
 def add_root_folder(api_key):
@@ -282,8 +282,8 @@ def add_root_folder(api_key):
     log(f"Checking root folders...")
     try:
         folders = api_get("/api/v3/rootfolder", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch root folders: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch root folders.")
         return
 
     existing_paths = {f["path"] for f in folders}
@@ -295,8 +295,8 @@ def add_root_folder(api_key):
     try:
         api_post("/api/v3/rootfolder", {"path": root_folder_path}, api_key)
         log(f"Root folder '{root_folder_path}' added.")
-    except Exception as exc:
-        log(f"WARNING: Could not add root folder '{root_folder_path}': {exc}")
+    except Exception:
+        log(f"WARNING: Could not add root folder '{root_folder_path}'.")
 
 
 def main():
@@ -325,8 +325,8 @@ if __name__ == "__main__":
     if os.fork() == 0:
         try:
             main()
-        except Exception as exc:
-            log(f"ERROR: Unhandled exception in init: {exc}")
+        except Exception:
+            log("ERROR: Unhandled exception in init.")
             sys.exit(1)
     else:
         sys.exit(0)
