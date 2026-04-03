@@ -62,30 +62,6 @@ def wait_for_public_settings():
             time.sleep(2)
 
 
-def authenticate_jellyfin_admin(email):
-    admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
-    admin_password = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
-    if not admin_user or not admin_password:
-        raise RuntimeError("JELLYFIN_ADMIN_USER and JELLYFIN_ADMIN_PASSWORD must be set.")
-
-    log("Authenticating Seerr with Jellyfin admin account...")
-    return request(
-        "POST",
-        "/api/v1/auth/jellyfin",
-        payload={
-            "username": admin_user,
-            "password": admin_password,
-            "hostname": "jellyfin",
-            "port": 8096,
-            "useSsl": False,
-            "urlBase": "",
-            "email": email,
-            "serverType": 2,
-        },
-        expected=(200,),
-    )
-
-
 def get_cookie_headers(set_cookie_headers):
     cookie_values = []
     for header in set_cookie_headers:
@@ -99,30 +75,50 @@ def get_cookie_headers(set_cookie_headers):
 def authenticate_with_raw_response(email):
     admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
     admin_password = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
-    payload = json.dumps(
-        {
-            "username": admin_user,
-            "password": admin_password,
-            "hostname": "jellyfin",
-            "port": 8096,
-            "useSsl": False,
-            "urlBase": "",
-            "email": email,
-            "serverType": 2,
-        }
-    ).encode()
-    req = urllib.request.Request(
-        f"{SEERR_URL}/api/v1/auth/jellyfin",
-        data=payload,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as response:
-        if response.status != 200:
-            raise RuntimeError(f"Unexpected status {response.status} for auth")
-        response.read()
-        set_cookie = response.headers.get_all("Set-Cookie", [])
-        return get_cookie_headers(set_cookie)
+    if not admin_user or not admin_password:
+        raise RuntimeError("JELLYFIN_ADMIN_USER and JELLYFIN_ADMIN_PASSWORD must be set.")
+
+    payload = {
+        "username": admin_user,
+        "password": admin_password,
+        "hostname": "jellyfin",
+        "port": 8096,
+        "useSsl": False,
+        "urlBase": "",
+        "email": email,
+        "serverType": 2,
+    }
+
+    def do_auth(body):
+        req = urllib.request.Request(
+            f"{SEERR_URL}/api/v1/auth/jellyfin",
+            data=json.dumps(body).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            if response.status != 200:
+                raise RuntimeError(f"Unexpected status {response.status} for auth")
+            response.read()
+            set_cookie = response.headers.get_all("Set-Cookie", [])
+            return get_cookie_headers(set_cookie)
+
+    log("Authenticating Seerr with Jellyfin admin account...")
+    try:
+        return do_auth(payload)
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode(errors="ignore")
+        # Seerr rejects providing a hostname when Jellyfin has already been configured.
+        # Retry without explicit host fields so it can authenticate against existing settings.
+        if exc.code == 500 and "hostname already configured" in error_body.lower():
+            retry_payload = {
+                "username": admin_user,
+                "password": admin_password,
+                "email": email,
+                "serverType": 2,
+            }
+            return do_auth(retry_payload)
+        raise RuntimeError(f"POST /api/v1/auth/jellyfin failed: {exc.code} {error_body}") from exc
 
 
 def configure_jellyfin(api_headers):
@@ -311,7 +307,6 @@ def main():
     else:
         log("Seerr is not initialized yet; setup wizard automation will run.")
         email = os.environ.get("SEERR_EMAIL", "info@edwinotten.com")
-        authenticate_jellyfin_admin(email)
         settings_headers = authenticate_with_raw_response(email)
 
     configure_jellyfin(settings_headers)
