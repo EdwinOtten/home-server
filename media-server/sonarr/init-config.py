@@ -22,6 +22,11 @@
 #   4. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
+#   5. Upserts an Emby/Jellyfin notification (idempotent):
+#      - Connects to jellyfin:8096
+#      - Enables update library
+#      - Enables: On Import Complete, On Upgrade, On Rename, On Series Delete,
+#        On Episode File Delete
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -223,6 +228,133 @@ def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnz
         log("WARNING: Could not update SABnzbd download client.")
 
 
+def notification_needs_update(existing, desired):
+    for key, desired_value in desired.items():
+        if existing.get(key) != desired_value:
+            return True
+    return False
+
+
+def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port):
+    log("Checking existing notifications...")
+    try:
+        notifications = api_get("/api/v3/notification", api_key)
+    except Exception:
+        log("WARNING: Could not fetch notifications.")
+        return
+
+    existing = None
+    for notification in notifications:
+        implementation = normalize_name(notification.get("implementation"))
+        name = normalize_name(notification.get("name"))
+        sort_name = normalize_name(notification.get("sortName"))
+        if (
+            implementation in {"emby", "mediabrowser"}
+            or sort_name in {"emby", "mediabrowser"}
+            or "emby / jellyfin" in name
+        ):
+            existing = notification
+            break
+
+    desired_fields = {
+        "host": jellyfin_host,
+        "port": str(jellyfin_port),
+        "apiKey": jellyfin_api_key,
+        "useSsl": False,
+        "updateLibrary": True,
+    }
+    desired_settings = {
+        "name": "Jellyfin",
+        "enable": True,
+        "onGrab": False,
+        "onDownload": False,
+        "onUpgrade": True,
+        "onImportComplete": True,
+        "onRename": True,
+        "onSeriesAdd": False,
+        "onSeriesDelete": True,
+        "onEpisodeFileDelete": True,
+        "onEpisodeFileDeleteForUpgrade": False,
+        "onHealthIssue": False,
+        "onHealthRestored": False,
+        "onApplicationUpdate": False,
+        "onManualInteractionRequired": False,
+        "includeHealthWarnings": False,
+    }
+
+    if existing is None:
+        log("Fetching notification schema...")
+        try:
+            schemas = api_get("/api/v3/notification/schema", api_key)
+        except Exception:
+            log("WARNING: Could not fetch notification schemas.")
+            return
+
+        notification_schema = None
+        for schema in schemas:
+            implementation = normalize_name(schema.get("implementation"))
+            name = normalize_name(schema.get("name"))
+            sort_name = normalize_name(schema.get("sortName"))
+            if (
+                implementation in {"emby", "mediabrowser"}
+                or sort_name in {"emby", "mediabrowser"}
+                or "emby / jellyfin" in name
+            ):
+                notification_schema = schema
+                break
+
+        if notification_schema is None:
+            log("WARNING: Emby/Jellyfin notification schema not found.")
+            return
+
+        fields = notification_schema.get("fields", [])
+        for field_name, field_value in desired_fields.items():
+            if not set_field_value(fields, field_name, field_value):
+                log(f"WARNING: Notification schema missing expected field '{field_name}'.")
+                return
+        for setting_name, setting_value in desired_settings.items():
+            notification_schema[setting_name] = setting_value
+
+        log("Adding Jellyfin notification...")
+        try:
+            api_post("/api/v3/notification", notification_schema, api_key)
+            log("Jellyfin notification added.")
+        except Exception:
+            log("WARNING: Could not add Jellyfin notification.")
+        return
+
+    fields = existing.get("fields", [])
+    needs_update = False
+    for field_name, desired_value in desired_fields.items():
+        current_value = get_field_value(fields, field_name)
+        if not field_value_matches(field_name, current_value, desired_value):
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing notification missing expected field '{field_name}'.")
+                return
+            needs_update = True
+
+    if notification_needs_update(existing, desired_settings):
+        needs_update = True
+        for setting_name, setting_value in desired_settings.items():
+            existing[setting_name] = setting_value
+
+    if not needs_update:
+        log("Jellyfin notification already configured, skipping.")
+        return
+
+    existing_id = existing.get("id")
+    if not existing_id:
+        log("WARNING: Existing Jellyfin notification has no id; cannot update.")
+        return
+
+    log("Updating Jellyfin notification...")
+    try:
+        api_put(f"/api/v3/notification/{existing_id}", existing, api_key)
+        log("Jellyfin notification updated.")
+    except Exception:
+        log("WARNING: Could not update Jellyfin notification.")
+
+
 def configure_naming(api_key):
     log("Fetching current naming settings...")
     try:
@@ -293,11 +425,18 @@ def main():
 
     sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
     sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
+    jellyfin_api_key = os.environ.get("JELLYFIN_API_KEY", "")
+    if not jellyfin_api_key:
+        log("ERROR: JELLYFIN_API_KEY is not set. Aborting.")
+        sys.exit(1)
+    jellyfin_host = os.environ.get("JELLYFIN_HOST", "jellyfin")
+    jellyfin_port = os.environ.get("JELLYFIN_PORT", "8096")
 
     wait_for_sonarr(api_key)
     configure_naming(api_key)
     add_root_folder(api_key)
     upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
+    upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)
     log("Init complete.")
 
 
