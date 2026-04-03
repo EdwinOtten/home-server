@@ -14,10 +14,7 @@
 #      - Resolves a valid appProfileId from /api/v1/appprofile if the schema uses 0
 #      - Sets the API key from the NZBGEEK_API_KEY environment variable
 #      - Creates the indexer via POST /api/v1/indexer
-#   3. Upserts a SABnzbd download client (idempotent):
-#      - Creates the client if it does not exist
-#      - Updates host, port and apiKey if they changed
-#   4. Upserts Radarr and Sonarr applications (idempotent):
+#   3. Upserts Radarr and Sonarr applications (idempotent):
 #      - Creates each app if it does not exist
 #      - Updates host/baseUrl, apiKey and prowlarrUrl if they changed
 #
@@ -224,134 +221,6 @@ def build_application_base_url(app_host, app_port):
     return f"http://{host}"
 
 
-def normalize_category_mappings(mappings):
-    normalized = []
-    if not isinstance(mappings, list):
-        return normalized
-    for item in mappings:
-        if not isinstance(item, dict):
-            continue
-        client_category = str(item.get("clientCategory", "")).strip().lower()
-        categories = item.get("categories", [])
-        category_ids = sorted(
-            {
-                cid
-                for cid in (to_positive_int(value) for value in categories)
-                if cid
-            }
-        )
-        normalized.append((client_category, tuple(category_ids)))
-    return sorted(normalized)
-
-
-def upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port):
-    log("Checking existing download clients...")
-    try:
-        clients = api_get("/api/v1/downloadclient", prowlarr_api_key)
-    except Exception:
-        log("WARNING: Could not fetch download clients.")
-        return
-
-    existing = None
-    for client in clients:
-        if normalize_name(client.get("implementation")) == "sabnzbd":
-            existing = client
-            break
-
-    desired = {
-        "host": sabnzbd_host,
-        "port": str(sabnzbd_port),
-        "apiKey": sabnzbd_api_key,
-    }
-    desired_optional = {
-        "category": "default",
-    }
-    desired_category_mappings = [
-        {"clientCategory": "movies", "categories": [2000]},
-        {"clientCategory": "tv", "categories": [5000]},
-    ]
-
-    if existing is None:
-        log("Fetching SABnzbd download client schema...")
-        try:
-            schemas = api_get("/api/v1/downloadclient/schema", prowlarr_api_key)
-        except Exception:
-            log("WARNING: Could not fetch download client schemas.")
-            return
-
-        sabnzbd_schema = None
-        for schema in schemas:
-            if (
-                normalize_name(schema.get("implementation")) == "sabnzbd"
-                or normalize_name(schema.get("name")) == "sabnzbd"
-                or normalize_name(schema.get("sortName")) == "sabnzbd"
-            ):
-                sabnzbd_schema = schema
-                break
-
-        if sabnzbd_schema is None:
-            log("WARNING: SABnzbd schema not found in available download client schemas.")
-            return
-
-        fields = sabnzbd_schema.get("fields", [])
-        for field_name, field_value in desired.items():
-            if not set_field_value(fields, field_name, field_value):
-                log(f"WARNING: SABnzbd schema missing expected field '{field_name}'.")
-                return
-        for field_name, field_value in desired_optional.items():
-            set_field_value(fields, field_name, field_value)
-
-        sabnzbd_schema["name"] = "SABnzbd"
-        sabnzbd_schema["enable"] = True
-        sabnzbd_schema["categories"] = desired_category_mappings
-
-        log("Adding SABnzbd download client...")
-        try:
-            api_post("/api/v1/downloadclient", sabnzbd_schema, prowlarr_api_key)
-            log("SABnzbd download client added.")
-        except Exception:
-            log("WARNING: Could not add SABnzbd download client.")
-        return
-
-    fields = existing.get("fields", [])
-    needs_update = False
-    for field_name, desired_value in desired.items():
-        current_value = get_field_value(fields, field_name)
-        if not field_value_matches(field_name, current_value, desired_value):
-            needs_update = True
-            if not set_field_value(fields, field_name, desired_value):
-                log(f"WARNING: Existing SABnzbd client missing expected field '{field_name}'.")
-                return
-    for field_name, desired_value in desired_optional.items():
-        current_value = get_field_value(fields, field_name)
-        if current_value is None or not field_value_matches(field_name, current_value, desired_value):
-            if not set_field_value(fields, field_name, desired_value):
-                log(f"WARNING: Existing SABnzbd client missing optional field '{field_name}'.")
-                continue
-            needs_update = True
-
-    current_mappings = existing.get("categories")
-    if normalize_category_mappings(current_mappings) != normalize_category_mappings(desired_category_mappings):
-        existing["categories"] = desired_category_mappings
-        needs_update = True
-
-    if not needs_update:
-        log("SABnzbd download client already configured, skipping.")
-        return
-
-    existing_id = existing.get("id")
-    if not existing_id:
-        log("WARNING: Existing SABnzbd download client has no id; cannot update.")
-        return
-
-    log("Updating SABnzbd download client...")
-    try:
-        api_put(f"/api/v1/downloadclient/{existing_id}", existing, prowlarr_api_key)
-        log("SABnzbd download client updated.")
-    except Exception:
-        log("WARNING: Could not update SABnzbd download client.")
-
-
 def upsert_application(
     prowlarr_api_key,
     implementation,
@@ -531,11 +400,6 @@ def main():
         log("ERROR: NZBGEEK_API_KEY is not set. Aborting.")
         sys.exit(1)
 
-    sabnzbd_api_key = os.environ.get("SABNZBD_API_KEY", "")
-    if not sabnzbd_api_key:
-        log("ERROR: SABNZBD_API_KEY is not set. Aborting.")
-        sys.exit(1)
-
     radarr_api_key = os.environ.get("RADARR_API_KEY", "")
     if not radarr_api_key:
         log("ERROR: RADARR_API_KEY is not set. Aborting.")
@@ -546,8 +410,6 @@ def main():
         log("ERROR: SONARR_API_KEY is not set. Aborting.")
         sys.exit(1)
 
-    sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
-    sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
     radarr_host = os.environ.get("RADARR_HOST", "radarr")
     radarr_port = os.environ.get("RADARR_PORT", "7878")
     sonarr_host = os.environ.get("SONARR_HOST", "sonarr")
@@ -556,7 +418,6 @@ def main():
 
     wait_for_prowlarr(prowlarr_api_key)
     add_nzbgeek_indexer(prowlarr_api_key, nzbgeek_api_key)
-    upsert_sabnzbd_download_client(prowlarr_api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     upsert_application(
         prowlarr_api_key,
         "radarr",

@@ -19,6 +19,9 @@
 #      - seriesFolderFormat: {Series TitleYear}
 #      - seasonFolderFormat: Season {season}
 #   3. Adds /media/series as a root folder if it does not already exist.
+#   4. Upserts a SABnzbd download client (idempotent):
+#      - Creates the client if it does not exist
+#      - Updates host, port and apiKey if they changed
 #
 # All steps are idempotent: re-running on a subsequent restart is safe.
 
@@ -80,12 +83,152 @@ def wait_for_sonarr(api_key):
     log("Sonarr API is up.")
 
 
+def normalize_name(value):
+    return str(value or "").strip().lower()
+
+
+def to_positive_int(value):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return number if number > 0 else 0
+
+
+def get_field_value(fields, field_name):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            return field.get("value")
+    return None
+
+
+def set_field_value(fields, field_name, field_value):
+    for field in fields:
+        if normalize_name(field.get("name")) == normalize_name(field_name):
+            field["value"] = field_value
+            return True
+    return False
+
+
+def field_value_matches(field_name, current_value, desired_value):
+    if current_value is None:
+        return False
+
+    if normalize_name(field_name) == "port":
+        current_port = to_positive_int(current_value)
+        desired_port = to_positive_int(desired_value)
+        if current_port and desired_port:
+            return current_port == desired_port
+
+    return str(current_value) == str(desired_value)
+
+
+def upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port):
+    log("Checking existing download clients...")
+    try:
+        clients = api_get("/api/v3/downloadclient", api_key)
+    except Exception:
+        log("WARNING: Could not fetch download clients.")
+        return
+
+    existing = None
+    for client in clients:
+        if normalize_name(client.get("implementation")) == "sabnzbd":
+            existing = client
+            break
+
+    desired = {
+        "host": sabnzbd_host,
+        "port": str(sabnzbd_port),
+        "apiKey": sabnzbd_api_key,
+    }
+    desired_optional = {
+        "tvCategory": "tv",
+    }
+
+    if existing is None:
+        log("Fetching SABnzbd download client schema...")
+        try:
+            schemas = api_get("/api/v3/downloadclient/schema", api_key)
+        except Exception:
+            log("WARNING: Could not fetch download client schemas.")
+            return
+
+        sabnzbd_schema = None
+        for schema in schemas:
+            if (
+                normalize_name(schema.get("implementation")) == "sabnzbd"
+                or normalize_name(schema.get("name")) == "sabnzbd"
+                or normalize_name(schema.get("sortName")) == "sabnzbd"
+            ):
+                sabnzbd_schema = schema
+                break
+
+        if sabnzbd_schema is None:
+            log("WARNING: SABnzbd schema not found in available download client schemas.")
+            return
+
+        fields = sabnzbd_schema.get("fields", [])
+        for field_name, field_value in desired.items():
+            if not set_field_value(fields, field_name, field_value):
+                log(f"WARNING: SABnzbd schema missing expected field '{field_name}'.")
+                return
+        for field_name, field_value in desired_optional.items():
+            set_field_value(fields, field_name, field_value)
+
+        sabnzbd_schema["name"] = "SABnzbd"
+        sabnzbd_schema["enable"] = True
+
+        log("Adding SABnzbd download client...")
+        try:
+            api_post("/api/v3/downloadclient", sabnzbd_schema, api_key)
+            log("SABnzbd download client added.")
+        except Exception:
+            log("WARNING: Could not add SABnzbd download client.")
+        return
+
+    fields = existing.get("fields", [])
+    needs_update = False
+    for field_name, desired_value in desired.items():
+        current_value = get_field_value(fields, field_name)
+        if not field_value_matches(field_name, current_value, desired_value):
+            needs_update = True
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing SABnzbd client missing expected field '{field_name}'.")
+                return
+    for field_name, desired_value in desired_optional.items():
+        current_value = get_field_value(fields, field_name)
+        if current_value is None:
+            continue
+        if not field_value_matches(field_name, current_value, desired_value):
+            if not set_field_value(fields, field_name, desired_value):
+                log(f"WARNING: Existing SABnzbd client missing optional field '{field_name}'.")
+                continue
+            needs_update = True
+
+    if not needs_update:
+        log("SABnzbd download client already configured, skipping.")
+        return
+
+    existing_id = existing.get("id")
+    if not existing_id:
+        log("WARNING: Existing SABnzbd download client has no id; cannot update.")
+        return
+
+    log("Updating SABnzbd download client...")
+    try:
+        api_put(f"/api/v3/downloadclient/{existing_id}", existing, api_key)
+        log("SABnzbd download client updated.")
+    except Exception:
+        log("WARNING: Could not update SABnzbd download client.")
+
+
 def configure_naming(api_key):
     log("Fetching current naming settings...")
     try:
         settings = api_get("/api/v3/config/naming", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch naming settings: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch naming settings.")
         return
 
     desired = {
@@ -111,8 +254,8 @@ def configure_naming(api_key):
     try:
         api_put(f"/api/v3/config/naming/{config_id}", settings, api_key)
         log("Naming settings updated.")
-    except Exception as exc:
-        log(f"WARNING: Could not update naming settings: {exc}")
+    except Exception:
+        log("WARNING: Could not update naming settings.")
 
 
 def add_root_folder(api_key):
@@ -120,8 +263,8 @@ def add_root_folder(api_key):
     log("Checking root folders...")
     try:
         folders = api_get("/api/v3/rootfolder", api_key)
-    except Exception as exc:
-        log(f"WARNING: Could not fetch root folders: {exc}")
+    except Exception:
+        log("WARNING: Could not fetch root folders.")
         return
 
     existing_paths = {f["path"] for f in folders}
@@ -133,8 +276,8 @@ def add_root_folder(api_key):
     try:
         api_post("/api/v3/rootfolder", {"path": root_folder_path}, api_key)
         log(f"Root folder '{root_folder_path}' added.")
-    except Exception as exc:
-        log(f"WARNING: Could not add root folder '{root_folder_path}': {exc}")
+    except Exception:
+        log(f"WARNING: Could not add root folder '{root_folder_path}'.")
 
 
 def main():
@@ -143,9 +286,18 @@ def main():
         log("ERROR: SONARR__AUTH__APIKEY is not set. Aborting.")
         sys.exit(1)
 
+    sabnzbd_api_key = os.environ.get("SABNZBD_API_KEY", "")
+    if not sabnzbd_api_key:
+        log("ERROR: SABNZBD_API_KEY is not set. Aborting.")
+        sys.exit(1)
+
+    sabnzbd_host = os.environ.get("SABNZBD_HOST", "sabnzbd")
+    sabnzbd_port = os.environ.get("SABNZBD_PORT", "8080")
+
     wait_for_sonarr(api_key)
     configure_naming(api_key)
     add_root_folder(api_key)
+    upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     log("Init complete.")
 
 
@@ -153,8 +305,8 @@ if __name__ == "__main__":
     if os.fork() == 0:
         try:
             main()
-        except Exception as exc:
-            log(f"ERROR: Unhandled exception in init: {exc}")
+        except Exception:
+            log("ERROR: Unhandled exception in init.")
             sys.exit(1)
     else:
         sys.exit(0)

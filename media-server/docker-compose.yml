@@ -12,18 +12,20 @@ services:
     command: >
       sh -c "mkdir -p /mnt/storage/media/movies 
       /mnt/storage/media/series 
-      /mnt/storage/downloads/nzb 
-      /mnt/storage/downloads/torrent 
+      /mnt/storage/media/downloads/usenet/complete 
+      /mnt/storage/media/downloads/usenet/incomplete 
+      /mnt/storage/media/downloads/torrent/complete 
+      /mnt/storage/media/downloads/torrent/incomplete 
       /mnt/storage/services/sonarr 
       /mnt/storage/services/radarr 
       /mnt/storage/services/configarr 
       /mnt/storage/services/prowlarr 
       /mnt/storage/services/bazarr 
-      /mnt/storage/services/jellyfin/data 
       /mnt/storage/services/seerr 
       /mnt/storage/services/sabnzbd 
-      && chown -R ${PUID}:${PGID} /mnt/storage/media /mnt/storage/downloads /mnt/storage/services &&
-      chmod -R u+rwX,go-wx /mnt/storage/media /mnt/storage/downloads /mnt/storage/services"
+      /mnt/storage/services/jellyfin/data 
+      && chown -R ${PUID}:${PGID} /mnt/storage && 
+      chmod -R u+rwX,go-wx /mnt/storage"
     healthcheck:
       disable: true
 
@@ -39,9 +41,14 @@ services:
 #      - /etc/localtime:/etc/localtime:ro
 #      - type: volume
 #        source: media-server-storage-root
-#        target: /data
+#        target: /media/downloads/torrent/complete
 #        volume:
-#          subpath: downloads/torrent
+#          subpath: media/downloads/torrent/complete
+#      - type: volume
+#        source: media-server-storage-root
+#        target: /media/downloads/torrent/incomplete
+#        volume:
+#          subpath: media/downloads/torrent/incomplete
 #      - type: volume
 #        source: media-server-storage-root
 #        target: /config
@@ -81,9 +88,14 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - type: volume
         source: media-server-storage-root
-        target: /data
+        target: /media/downloads/usenet/complete
         volume:
-          subpath: downloads/nzb
+          subpath: media/downloads/usenet/complete
+      - type: volume
+        source: media-server-storage-root
+        target: /media/downloads/usenet/incomplete
+        volume:
+          subpath: media/downloads/usenet/incomplete
       - type: volume
         source: media-server-storage-root
         target: /config
@@ -122,6 +134,9 @@ services:
       - SONARR__AUTH__METHOD=Forms
       - SONARR__AUTH__APIKEY=${SONARR_API_KEY:?error}
       - SONARR__AUTH__REQUIRED=DisabledForLocalAddresses
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
     volumes:
       - type: volume
         source: media-server-storage-root
@@ -152,6 +167,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      sabnzbd:
+        condition: service_healthy
 
   # Radarr is used to query, add downloads to the download queue and index Movies
   # https://radarr.video/
@@ -166,6 +183,9 @@ services:
       - RADARR__AUTH__METHOD=Forms
       - RADARR__AUTH__APIKEY=${RADARR_API_KEY:?error}
       - RADARR__AUTH__REQUIRED=DisabledForLocalAddresses
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
     volumes:
       - type: volume
         source: media-server-storage-root
@@ -196,6 +216,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      sabnzbd:
+        condition: service_healthy
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
   #configarr:
@@ -230,9 +252,6 @@ services:
       - PROWLARR__AUTH__APIKEY=${PROWLARR_API_KEY:?error}
       - PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses
       - NZBGEEK_API_KEY=${NZBGEEK_API_KEY:?error}
-      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
-      - SABNZBD_HOST=sabnzbd
-      - SABNZBD_PORT=8080
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
       - RADARR_HOST=radarr
       - RADARR_PORT=7878
@@ -397,6 +416,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      jellyfin:
+        condition: service_healthy
 
 networks:
   media-server-network:

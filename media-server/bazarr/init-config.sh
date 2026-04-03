@@ -1,6 +1,7 @@
 #!/bin/bash
 
-CONFIG_FILE="/config/config/config.yaml"
+CONFIG_DIR="/config/config"
+CONFIG_FILE="${CONFIG_DIR}/config.yaml"
 
 update_section() {
   SECTION="$1"
@@ -11,7 +12,7 @@ update_section() {
   [ -z "VALUE" ] && return
 
   # Create file if missing
-  [ ! -f "$CONFIG_FILE" ] && touch "$CONFIG_FILE"
+  [ ! -f "$CONFIG_FILE" ] && mkdir -p CONFIG_DIR && touch "$CONFIG_FILE"
 
   # Create section if missing
   if ! grep -q "^${SECTION}:" "$CONFIG_FILE"; then
