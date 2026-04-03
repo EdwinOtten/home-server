@@ -434,8 +434,8 @@ services:
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
     volumes:
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr/init-config.py:/opt/seerr-init-config.py:ro
-    command: ["python3", "/opt/seerr-init-config.py"]
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+    command: ["python3", "/opt/seerr/init-config.py"]
     restart: "no"
     networks:
       - media-server-network
