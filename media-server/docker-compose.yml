@@ -405,7 +405,7 @@ services:
       - 5055:5055
     volumes:
       - type: volume
-        source: media-server-remote-root
+        source: media-server-local-root
         target: /app/config
         volume:
           subpath: services/seerr
