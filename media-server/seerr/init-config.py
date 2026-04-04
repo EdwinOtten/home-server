@@ -281,7 +281,6 @@ def configure_radarr(api_headers):
 
     if existing:
         current = existing[0]
-        payload["id"] = int(current["id"])
         log("Updating Radarr integration in Seerr...")
         request(
             "PUT",
@@ -303,7 +302,6 @@ def configure_sonarr(api_headers):
 
     if existing:
         current = existing[0]
-        payload["id"] = int(current["id"])
         log("Updating Sonarr integration in Seerr...")
         request(
             "PUT",
