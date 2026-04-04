@@ -1,10 +1,10 @@
 name: media-server
-reference: main
+reference: improve_performance
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
 #force_recreate: true
-destroy: true
+#destroy: true
 destroy_opts:
   remove_volumes: true
   remove_images: true
