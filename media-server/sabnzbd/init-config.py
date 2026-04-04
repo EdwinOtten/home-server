@@ -65,7 +65,7 @@ def get_env_config():
         "wizard_completed": "1",
         "host": "0.0.0.0",
         "port": "8080",
-        "download_dir": "/media/downloads/usenet/incomplete",
+        "download_dir": "/incomplete",
         "complete_dir": "/media/downloads/usenet/complete",
     }
 
