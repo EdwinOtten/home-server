@@ -110,8 +110,8 @@ def authenticate_with_raw_response(email):
         error_body = exc.read().decode(errors="ignore")
         # Seerr rejects providing a hostname when Jellyfin has already been configured.
         # Retry without explicit host fields so it can authenticate against existing settings.
-        if exc.code == 500 and "hostname already configured" in error_body.lower():
-            log("Seerr reported Jellyfin hostname already configured; retrying auth with existing server settings.")
+        if exc.code == 500:
+            log("Authenticating Seerr with Jellyfin admin account returned 500 error; retrying auth with existing server settings.")
             retry_payload = dict(payload)
             for field in ("hostname", "port", "useSsl", "urlBase"):
                 retry_payload.pop(field, None)
