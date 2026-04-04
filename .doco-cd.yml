@@ -1,5 +1,5 @@
 name: media-server
-reference: main
+reference: copilot/configure-settings-for-seerr
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
