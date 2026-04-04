@@ -3,8 +3,8 @@ reference: improve_performance
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
-force_recreate: true
-#destroy: true
+#force_recreate: true
+destroy: true
 destroy_opts:
   remove_volumes: true
   remove_images: true
