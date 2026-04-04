@@ -226,22 +226,27 @@ services:
         condition: service_healthy
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
-  #configarr:
-  #  image: ghcr.io/raydak-labs/configarr:1.17.2
-  #  container_name: configarr
-  #  user: ${PUID?:error}:${PGID?:error}
-  #  depends_on:
-  #    - sonarr
-  #  environment:
-  #    - TZ=${TZ?:error}
-  #  volumes:
-  #    - /opt/configarr-cache:/app/repos # Cache repositories
-  #    - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
-  #    - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
-  #    # - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
-  #  # restart: "no" # optional make sure this is set to no or removed. Default is no
-  #  networks:
-  #    - media-server-network
+  configarr:
+    image: ghcr.io/raydak-labs/configarr:1.17.2
+    container_name: configarr
+    user: ${PUID?:error}:${PGID?:error}
+    environment:
+      - TZ=${TZ?:error}
+    volumes:
+      - /opt/configarr-cache:/app/repos # Cache repositories
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
+      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+    restart: unless-stopped # optional make sure this is set to no or removed. Default is no
+    networks:
+      - media-server-network
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
 
 
   # Prowlarr is our torrent indexer/searcher. Preolarr pushes indexes to Sonarr/Radarr.
