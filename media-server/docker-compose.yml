@@ -439,6 +439,10 @@ services:
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
+      - SEERR_RADARR_QUALITY_PROFILE=${SEERR_RADARR_QUALITY_PROFILE:-HD-1080p}
+      - SEERR_SONARR_QUALITY_PROFILE=${SEERR_SONARR_QUALITY_PROFILE:-HD-1080p}
+      - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
+      - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
     command: ["python3", "/opt/seerr/init-config.py"]

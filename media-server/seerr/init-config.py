@@ -197,61 +197,55 @@ def test_sonarr(api_headers):
     )
 
 
-def configure_radarr(api_headers):
-    existing = request("GET", "/api/v1/settings/radarr", headers=api_headers, expected=(200,))
-    if existing:
-        log("Radarr is already configured, skipping.")
-        return
+def select_profile(profiles, preferred_name):
+    if preferred_name:
+        for profile in profiles:
+            if str(profile.get("name", "")).strip().lower() == preferred_name.strip().lower():
+                return profile
+    return (profiles or [{}])[0]
 
-    test_data = test_radarr(api_headers)
-    profile = (test_data.get("profiles") or [{}])[0]
-    root = (test_data.get("rootFolders") or [{}])[0]
+
+def desired_radarr_payload(test_data):
+    profiles = test_data.get("profiles") or []
+    root_folders = test_data.get("rootFolders") or []
+    preferred_profile = os.environ.get("SEERR_RADARR_QUALITY_PROFILE", "HD-1080p")
+    profile = select_profile(profiles, preferred_profile)
+    root = root_folders[0] if root_folders else {}
     if not profile.get("id") or not root.get("path"):
         raise RuntimeError("Unable to determine Radarr profile/root folder from test endpoint.")
 
-    log("Creating Radarr integration in Seerr...")
-    request(
-        "POST",
-        "/api/v1/settings/radarr",
-        payload={
-            "name": "Radarr",
-            "hostname": "radarr",
-            "port": 7878,
-            "apiKey": os.environ["RADARR_API_KEY"],
-            "useSsl": False,
-            "baseUrl": "",
-            "activeProfileId": int(profile["id"]),
-            "activeProfileName": profile.get("name"),
-            "activeDirectory": root.get("path"),
-            "is4k": False,
-            "minimumAvailability": "released",
-            "isDefault": True,
-            "externalUrl": "",
-            "syncEnabled": False,
-            "preventSearch": False,
-            "tagRequests": False,
-            "tags": [],
-        },
-        headers=api_headers,
-        expected=(201,),
-    )
+    return {
+        "name": "Radarr",
+        "hostname": "radarr",
+        "port": 7878,
+        "apiKey": os.environ["RADARR_API_KEY"],
+        "useSsl": False,
+        "baseUrl": "",
+        "activeProfileId": int(profile["id"]),
+        "activeProfileName": profile.get("name"),
+        "activeDirectory": root.get("path"),
+        "is4k": False,
+        "minimumAvailability": "released",
+        "isDefault": True,
+        "externalUrl": os.environ.get("SEERR_RADARR_EXTERNAL_URL", "http://radarr:7878"),
+        "syncEnabled": True,
+        "preventSearch": False,
+        "tagRequests": True,
+        "tags": [],
+    }
 
 
-def configure_sonarr(api_headers):
-    existing = request("GET", "/api/v1/settings/sonarr", headers=api_headers, expected=(200,))
-    if existing:
-        log("Sonarr is already configured, skipping.")
-        return
-
-    test_data = test_sonarr(api_headers)
-    profile = (test_data.get("profiles") or [{}])[0]
-    root = (test_data.get("rootFolders") or [{}])[0]
+def desired_sonarr_payload(test_data):
+    profiles = test_data.get("profiles") or []
+    root_folders = test_data.get("rootFolders") or []
     language_profiles = test_data.get("languageProfiles") or []
+    preferred_profile = os.environ.get("SEERR_SONARR_QUALITY_PROFILE", "HD-1080p")
+    profile = select_profile(profiles, preferred_profile)
+    root = root_folders[0] if root_folders else {}
     language_id = language_profiles[0]["id"] if language_profiles else None
     if not profile.get("id") or not root.get("path"):
         raise RuntimeError("Unable to determine Sonarr profile/root folder from test endpoint.")
 
-    log("Creating Sonarr integration in Seerr...")
     payload = {
         "name": "Sonarr",
         "hostname": "sonarr",
@@ -269,22 +263,59 @@ def configure_sonarr(api_headers):
         "is4k": False,
         "isDefault": True,
         "enableSeasonFolders": True,
-        "externalUrl": "",
-        "syncEnabled": False,
+        "externalUrl": os.environ.get("SEERR_SONARR_EXTERNAL_URL", "http://sonarr:8989"),
+        "syncEnabled": True,
         "preventSearch": False,
-        "tagRequests": False,
+        "tagRequests": True,
         "monitorNewItems": "all",
     }
     if language_id is not None:
         payload["activeLanguageProfileId"] = int(language_id)
+    return payload
 
-    request(
-        "POST",
-        "/api/v1/settings/sonarr",
-        payload=payload,
-        headers=api_headers,
-        expected=(201,),
-    )
+
+def configure_radarr(api_headers):
+    existing = request("GET", "/api/v1/settings/radarr", headers=api_headers, expected=(200,))
+    test_data = test_radarr(api_headers)
+    payload = desired_radarr_payload(test_data)
+
+    if existing:
+        current = existing[0]
+        payload["id"] = int(current["id"])
+        log("Updating Radarr integration in Seerr...")
+        request(
+            "PUT",
+            f"/api/v1/settings/radarr/{current['id']}",
+            payload=payload,
+            headers=api_headers,
+            expected=(200,),
+        )
+        return
+
+    log("Creating Radarr integration in Seerr...")
+    request("POST", "/api/v1/settings/radarr", payload=payload, headers=api_headers, expected=(201,))
+
+
+def configure_sonarr(api_headers):
+    existing = request("GET", "/api/v1/settings/sonarr", headers=api_headers, expected=(200,))
+    test_data = test_sonarr(api_headers)
+    payload = desired_sonarr_payload(test_data)
+
+    if existing:
+        current = existing[0]
+        payload["id"] = int(current["id"])
+        log("Updating Sonarr integration in Seerr...")
+        request(
+            "PUT",
+            f"/api/v1/settings/sonarr/{current['id']}",
+            payload=payload,
+            headers=api_headers,
+            expected=(200,),
+        )
+        return
+
+    log("Creating Sonarr integration in Seerr...")
+    request("POST", "/api/v1/settings/sonarr", payload=payload, headers=api_headers, expected=(201,))
 
 
 def initialize_setup(api_headers):
