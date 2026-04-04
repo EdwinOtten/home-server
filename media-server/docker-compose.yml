@@ -19,7 +19,7 @@ services:
       /mnt/media-server-local-root/services/radarr 
       /mnt/media-server-local-root/services/configarr 
       /mnt/media-server-local-root/services/prowlarr 
-      /mnt/media-server-local-root/services/bazarr 
+      /mnt/media-server-local-root/services/bazarr/config/config 
       /mnt/media-server-local-root/services/seerr 
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
