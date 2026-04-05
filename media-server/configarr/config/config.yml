@@ -20,6 +20,79 @@ radarr:
     api_key: !env RADARR_API_KEY
     quality_definition:
       type: movie
-    include:
-#      - template: local-template-name
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: true
+    quality_profiles:
+      - name: HD-1080p
+        upgrade:
+          allowed: false
+          until_quality: Bluray-1080p
+        qualities:
+          - name: Bluray-1080p
+          - name: HDTV-1080p
+          - name: WEB 1080p
+            qualities:
+              - WEBRip-1080p
+              - WEBDL-1080p
+      - name: Ultra-HD
+        upgrade:
+          allowed: false
+          until_quality: Bluray-2160p
+        qualities:
+          - name: Bluray-2160p
+          - name: HDTV-2160p
+          - name: WEB 2160p
+            qualities:
+              - WEBRip-2160p
+              - WEBDL-2160p
+    custom_formats:
+
+# rules for both HD and UltraHD
+      - trash_ids:
+          - 1af239278386be2919e1bcee0bde047e # Matches Dolby Digital Plus Atmos
+          - 185f1dd7264c4562b9022d963ac37424 # Matches Dolby Digital Plus
+          - c2998bd0d90ed5621d8df281e839436e # Matches Dolby Digital (not anything else)
+          - 8e109e50e0a0b83a5098b056e13bf6db # Matches DTS-HRA
+          - 90a6f9a284dff5103f6346090e6280c8 # Prevents Low Quality releases
+          - e204b80c87be9497a8a6eaff48f72905 # Prevents Low Quality releases
+          - b8cd450cbfa689c0259a01d9e29ba3d6 # Prevents 3D
+          - bfd8eb01832d646a0a89c4deb46f8564 # Prevents upscaled content
+        assign_scores_to:
+          - name: HD-1080p
+          - name: Ultra-HD
+
+# rules to block TrueHD content
+      - trash_ids:
+          - 3cafb66171b47f226146a0770576870f # Matches TrueHD
+          - 496f355514737f7d83bf7aa4d24f8169 # Matches TrueHD Atmos
+        assign_scores_to:
+          - name: Ultra-HD
+            score: -5000
+          - name: HD-1080p
+            score: -5000
+
+# HDR-related rules for UltraHD            
+      - trash_ids:
+          - e61e28db95d22bedcadf030b8f156d96 # Matches HDR (not HDR10(+))
+          - e23edd2482476e595fb990b12e7c609c # Matches Dolby Vision with HDR10 fallback
+          - 923b6abef9b17f937fab56cfcf89e1f1 # Prevents Dolby Vision WEBDL (which dont have a HDR10 fallback)
+          - 9c38ebb7384dada637be8899efa68e6f # Prevents SDR for 4K          
+          - cae4ca30163749b891686f95532519bd # Prevents AV1
+          - ed38b889b31be83fda192888e2286d83 # Prevents BR-DISK
+          - e6886871085226c3da1830830146846c # Prevents Generated HDR
+        assign_scores_to:
+          - name: Ultra-HD
+
+# rules to prefer h265 for UltraHD and h264 for HD 
+      - trash_ids:
+          - 9170d55c319f4fe40da8711ba9d8050d # Matches x265 or H265
+        assign_scores_to:
+          - name: Ultra-HD
+            score: 200
+
+      - trash_ids:
+          - 2899d84dc9372de3408e6d8cc18e9666 # Matches x264 or H264
+        assign_scores_to:
+          - name: HD-1080p
+            score: 200
 
