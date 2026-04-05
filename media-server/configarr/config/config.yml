@@ -1,6 +1,6 @@
 telemetry: false
 sonarrEnabled: true
-radarrEnabled: false
+radarrEnabled: true
 whisparrEnabled: false
 readarrEnabled: false
 lidarrEnabled: false
@@ -11,7 +11,7 @@ sonarr:
     api_key: !env SONARR_API_KEY
     quality_definition:
       type: series
-    delete_old_custom_formats: false
+    delete_old_custom_formats: true
     replace_existing_custom_formats: true
     quality_profiles:
       - name: HD-1080p
@@ -89,7 +89,7 @@ radarr:
     api_key: !env RADARR_API_KEY
     quality_definition:
       type: movie
-    delete_old_custom_formats: false
+    delete_old_custom_formats: true
     replace_existing_custom_formats: true
     quality_profiles:
       - name: HD-1080p
