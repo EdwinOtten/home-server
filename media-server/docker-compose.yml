@@ -9,6 +9,7 @@ services:
     volumes:
       - media-server-remote-root:/mnt/media-server-remote-root
       - media-server-local-root:/mnt/media-server-local-root
+      - configarr-cache:/mbt/configarr-cache
     # This command creates all subdirectories at once and sets correct ownership
     command: >
       sh -c "mkdir -p /mnt/media-server-remote-root/media/movies 
@@ -23,8 +24,8 @@ services:
       /mnt/media-server-local-root/services/seerr 
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
-      && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
-      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
+      && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache && 
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache"
     healthcheck:
       disable: true
 
