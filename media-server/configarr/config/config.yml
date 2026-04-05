@@ -11,6 +11,8 @@ sonarr:
     api_key: !env SONARR_API_KEY
     quality_definition:
       type: series
+    delete_unmanaged_custom_formats:
+      enabled: true
     delete_old_custom_formats: true
     replace_existing_custom_formats: true
     quality_profiles:
@@ -89,6 +91,8 @@ radarr:
     api_key: !env RADARR_API_KEY
     quality_definition:
       type: movie
+    delete_unmanaged_custom_formats:
+      enabled: true
     delete_old_custom_formats: true
     replace_existing_custom_formats: true
     quality_profiles:
