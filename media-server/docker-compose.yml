@@ -9,7 +9,7 @@ services:
     volumes:
       - media-server-remote-root:/mnt/media-server-remote-root
       - media-server-local-root:/mnt/media-server-local-root
-      - configarr-cache:/mbt/configarr-cache
+      - configarr-cache:/mnt/configarr-cache
     # This command creates all subdirectories at once and sets correct ownership
     command: >
       sh -c "mkdir -p /mnt/media-server-remote-root/media/movies 
