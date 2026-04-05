@@ -1,5 +1,5 @@
 name: media-server
-reference: main
+reference: configarr
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
