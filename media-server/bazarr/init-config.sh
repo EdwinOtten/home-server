@@ -12,7 +12,7 @@ update_section() {
   [ -z "VALUE" ] && return
 
   # Create file if missing
-  [ ! -f "$CONFIG_FILE" ] && mkdir -p CONFIG_DIR && touch "$CONFIG_FILE"
+  [ ! -f "$CONFIG_FILE" ] && mkdir -p $CONFIG_DIR && touch "$CONFIG_FILE"
 
   # Create section if missing
   if ! grep -q "^${SECTION}:" "$CONFIG_FILE"; then

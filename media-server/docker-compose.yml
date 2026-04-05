@@ -7,25 +7,24 @@ services:
       - PUID=${PUID:?error}
       - PGID=${PGID:?error}
     volumes:
-      - media-server-storage-root:/mnt/storage
+      - media-server-remote-root:/mnt/media-server-remote-root
+      - media-server-local-root:/mnt/media-server-local-root
     # This command creates all subdirectories at once and sets correct ownership
     command: >
-      sh -c "mkdir -p /mnt/storage/media/movies 
-      /mnt/storage/media/series 
-      /mnt/storage/media/downloads/usenet/complete 
-      /mnt/storage/media/downloads/usenet/incomplete 
-      /mnt/storage/media/downloads/torrent/complete 
-      /mnt/storage/media/downloads/torrent/incomplete 
-      /mnt/storage/services/sonarr 
-      /mnt/storage/services/radarr 
-      /mnt/storage/services/configarr 
-      /mnt/storage/services/prowlarr 
-      /mnt/storage/services/bazarr 
-      /mnt/storage/services/seerr 
-      /mnt/storage/services/sabnzbd 
-      /mnt/storage/services/jellyfin/data 
-      && chown -R ${PUID}:${PGID} /mnt/storage && 
-      chmod -R u+rwX,go-wx /mnt/storage"
+      sh -c "mkdir -p /mnt/media-server-remote-root/media/movies 
+      /mnt/media-server-remote-root/media/series 
+      /mnt/media-server-remote-root/media/downloads/usenet/complete 
+      /mnt/media-server-local-root/downloads/usenet/incomplete 
+      /mnt/media-server-local-root/services/sonarr 
+      /mnt/media-server-local-root/services/radarr 
+      /mnt/media-server-local-root/services/configarr 
+      /mnt/media-server-local-root/services/prowlarr 
+      /mnt/media-server-local-root/services/bazarr/config/config 
+      /mnt/media-server-local-root/services/seerr 
+      /mnt/media-server-local-root/services/sabnzbd 
+      /mnt/media-server-local-root/services/jellyfin/data 
+      && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
     healthcheck:
       disable: true
 
@@ -40,17 +39,17 @@ services:
 #    volumes:
 #      - /etc/localtime:/etc/localtime:ro
 #      - type: volume
-#        source: media-server-storage-root
+#        source: media-server-remote-root
 #        target: /media/downloads/torrent/complete
 #        volume:
 #          subpath: media/downloads/torrent/complete
 #      - type: volume
-#        source: media-server-storage-root
+#        source: media-server-remote-root
 #        target: /media/downloads/torrent/incomplete
 #        volume:
 #          subpath: media/downloads/torrent/incomplete
 #      - type: volume
-#        source: media-server-storage-root
+#        source: media-server-local-root
 #        target: /config
 #        volume:
 #          subpath: services/qbittorrent
@@ -87,17 +86,17 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - type: volume
-        source: media-server-storage-root
+        source: media-server-remote-root
         target: /media/downloads/usenet/complete
         volume:
           subpath: media/downloads/usenet/complete
       - type: volume
-        source: media-server-storage-root
-        target: /media/downloads/usenet/incomplete
+        source: media-server-local-root
+        target: /incomplete
         volume:
-          subpath: media/downloads/usenet/incomplete
+          subpath: downloads/usenet/incomplete
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/sabnzbd
@@ -142,12 +141,12 @@ services:
       - JELLYFIN_PORT=8096
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-remote-root
         target: /media
         volume:
           subpath: media
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/sonarr
@@ -194,12 +193,12 @@ services:
       - JELLYFIN_PORT=8096
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-remote-root
         target: /media
         volume:
           subpath: media
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/radarr
@@ -276,7 +275,7 @@ services:
       - SONARR_PORT=8989
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/prowlarr
@@ -320,12 +319,12 @@ services:
       - RADARR_PORT=17878
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-remote-root
         target: /media
         volume:
           subpath: media
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/bazarr
@@ -368,14 +367,14 @@ services:
       - 17359:7359/udp
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /config
         volume:
           subpath: services/jellyfin
 # not mapping cache directory should create a non-persistent volume
 #      - jellyfin-cache:/cache
       - type: volume
-        source: media-server-storage-root
+        source: media-server-remote-root
         target: /media
         volume:
           subpath: media
@@ -416,7 +415,7 @@ services:
       - 5055:5055
     volumes:
       - type: volume
-        source: media-server-storage-root
+        source: media-server-local-root
         target: /app/config
         volume:
           subpath: services/seerr
@@ -449,6 +448,10 @@ services:
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
+      - SEERR_RADARR_QUALITY_PROFILE=${SEERR_RADARR_QUALITY_PROFILE:-HD-1080p}
+      - SEERR_SONARR_QUALITY_PROFILE=${SEERR_SONARR_QUALITY_PROFILE:-HD-1080p}
+      - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
+      - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
     command: ["python3", "/opt/seerr/init-config.py"]
@@ -477,9 +480,11 @@ volumes:
       o: addr=192.168.1.111,nolock,ro,soft,nfsvers=4
       device: ":/volume1/downloads"
 
-  media-server-storage-root:
+  media-server-remote-root:
     driver: local
     driver_opts:
       type: nfs
       o: addr=192.168.1.111,nfsvers=4,rw
       device: ":/volume1/media-server-storage"
+
+  media-server-local-root:
