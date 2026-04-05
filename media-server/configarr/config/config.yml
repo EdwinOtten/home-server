@@ -1,14 +1,25 @@
 telemetry: false
-sonarrEnabled: true
+sonarrEnabled: false
 radarrEnabled: false
 whisparrEnabled: false
 readarrEnabled: false
 lidarrEnabled: false
 
-# Sonarr Configuration
 sonarr:
-  instance1: # Instance name (can be any unique identifier)
-    base_url: http://sonarr:18989 # Sonarr instance URL
-    api_key: !env SONARR_API_KEY # load from environment variable
+  sonarrinstance1:
+    base_url: http://sonarr:8989
+    api_key: !env SONARR_API_KEY
     quality_definition:
-      type: series # Quality definition type for Sonarr
+      type: series
+    include:
+#      - template: local-template-name
+
+radarr:
+  radarrinstance1:
+    base_url: http://radarr:7878
+    api_key: !env RADARR_API_KEY
+    quality_definition:
+      type: movie
+    include:
+#      - template: local-template-name
+
