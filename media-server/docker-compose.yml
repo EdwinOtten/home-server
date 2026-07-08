@@ -393,7 +393,7 @@ services:
   # Radarr/Sonarr after an optional approval.
   # https://seerr.dev/
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3
     init: true
     container_name: seerr
     environment:
