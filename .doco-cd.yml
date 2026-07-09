@@ -6,11 +6,11 @@ compose_files:
 force_recreate: true
 remove_orphans: true
 reconciliation: true
-#destroy: true
+destroy: true
 destroy_opts:
-  remove_volumes: true
-  remove_images: true
-  remove_dir: true
+  remove_volumes: false
+  remove_images: false
+  remove_dir: false
 env_files:
   - .enc.env
 
