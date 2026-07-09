@@ -25,6 +25,7 @@ services:
       /mnt/media-server-local-root/services/jellyfin/data 
       && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
       chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
+    restart: on-failure
     healthcheck:
       disable: true
 
@@ -445,7 +446,7 @@ services:
     volumes:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
     command: ["python3", "/opt/seerr/init-config.py"]
-    restart: "no"
+    restart: on-failure
     networks:
       - media-server-network
     depends_on:
