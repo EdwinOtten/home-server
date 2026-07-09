@@ -5,6 +5,7 @@ compose_files:
   - docker-compose.yml
 force_recreate: false
 remove_orphans: true
+reconciliation: true
 #destroy: true
 destroy_opts:
   remove_volumes: true
