@@ -336,6 +336,8 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
+      seerr-init: # workaround for reconciliation bug
+        condition: service_completed_successfully
       sonarr:
         condition: service_healthy
       radarr:
