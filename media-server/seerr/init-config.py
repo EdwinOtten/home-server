@@ -341,6 +341,7 @@ def main():
     configure_sonarr(settings_headers)
     initialize_setup(settings_headers)
     log("Seerr setup automation completed successfully.")
+    time.sleep(3)
 
 
 if __name__ == "__main__":
