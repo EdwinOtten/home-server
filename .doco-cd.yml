@@ -3,7 +3,7 @@ reference: configarr
 working_dir: media-server/
 compose_files:
   - docker-compose.yml
-force_recreate: false
+force_recreate: true
 remove_orphans: true
 reconciliation: true
 #destroy: true
@@ -19,6 +19,7 @@ name: monitoring
 working_dir: monitoring/
 compose_files:
   - docker-compose.yml
+reconciliation: true
 
 #---
 #name: nfs-test
