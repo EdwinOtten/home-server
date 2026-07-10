@@ -26,7 +26,7 @@ services:
       && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
       chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root &&
       tail -f /dev/null"
-    restart: on-failure
+    restart: no
     healthcheck:
       disable: true
 
@@ -446,8 +446,9 @@ services:
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+    entrypoint: ""
     command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
-    restart: on-failure
+    restart: no
     healthcheck:
       disable: true
     networks:
