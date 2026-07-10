@@ -6,7 +6,7 @@ compose_files:
 force_recreate: false
 remove_orphans: true
 reconciliation: true
-destroy: false
+destroy: true
 destroy_opts:
   remove_volumes: false
   remove_images: false
