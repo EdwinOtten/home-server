@@ -432,7 +432,7 @@ services:
     post_start:
       # Configure Seerr through its API after first start so setup is unattended.
       - image: python:3.12-alpine
-        container_name: seerr-init
+        container_name: seerr-inittt
         environment:
           - TZ=${TZ?:error}
           - SEERR_URL=http://seerr:5055
