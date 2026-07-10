@@ -425,43 +425,31 @@ services:
         condition: service_completed_successfully
       jellyfin:
         condition: service_healthy
-
-  # Configure Seerr through its API after first start so setup is unattended.
-  seerr-init:
-    image: python:3.12-alpine
-    container_name: seerr-init
-    environment:
-      - TZ=${TZ?:error}
-      - SEERR_URL=http://seerr:5055
-      - SEERR_EMAIL=info@edwinotten.com
-      - SEERR_API_KEY=${SEERR_API_KEY:?error}
-      - JELLYFIN_ADMIN_USER=${JELLYFIN_ADMIN_USER:?error}
-      - JELLYFIN_ADMIN_PASSWORD=${JELLYFIN_ADMIN_PASSWORD:?error}
-      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
-      - RADARR_API_KEY=${RADARR_API_KEY:?error}
-      - SONARR_API_KEY=${SONARR_API_KEY:?error}
-      - SEERR_RADARR_QUALITY_PROFILE=${SEERR_RADARR_QUALITY_PROFILE:-HD-1080p}
-      - SEERR_SONARR_QUALITY_PROFILE=${SEERR_SONARR_QUALITY_PROFILE:-HD-1080p}
-      - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
-      - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
-    volumes:
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
-    entrypoint: ""
-    command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
-    restart: no
-    healthcheck:
-      disable: true
-    networks:
-      - media-server-network
-    depends_on:
-      seerr:
-        condition: service_healthy
-      jellyfin:
-        condition: service_healthy
       sonarr:
         condition: service_healthy
       radarr:
         condition: service_healthy
+    post_start:
+      # Configure Seerr through its API after first start so setup is unattended.
+      - image: python:3.12-alpine
+        container_name: seerr-init
+        environment:
+          - TZ=${TZ?:error}
+          - SEERR_URL=http://seerr:5055
+          - SEERR_EMAIL=info@edwinotten.com
+          - SEERR_API_KEY=${SEERR_API_KEY:?error}
+          - JELLYFIN_ADMIN_USER=${JELLYFIN_ADMIN_USER:?error}
+          - JELLYFIN_ADMIN_PASSWORD=${JELLYFIN_ADMIN_PASSWORD:?error}
+          - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+          - RADARR_API_KEY=${RADARR_API_KEY:?error}
+          - SONARR_API_KEY=${SONARR_API_KEY:?error}
+          - SEERR_RADARR_QUALITY_PROFILE=${SEERR_RADARR_QUALITY_PROFILE:-HD-1080p}
+          - SEERR_SONARR_QUALITY_PROFILE=${SEERR_SONARR_QUALITY_PROFILE:-HD-1080p}
+          - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
+          - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
+        volumes:
+          - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+        command: ["python3", "/opt/seerr/init-config.py"]
 
 networks:
   media-server-network:
