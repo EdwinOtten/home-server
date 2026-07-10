@@ -24,7 +24,8 @@ services:
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
       && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
-      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root &&
+      tail -f /dev/null"
     restart: on-failure
     healthcheck:
       disable: true
@@ -336,8 +337,6 @@ services:
     depends_on:
       init-folders:
         condition: service_completed_successfully
-      seerr-init: # workaround for reconciliation bug
-        condition: service_completed_successfully
       sonarr:
         condition: service_healthy
       radarr:
@@ -447,8 +446,10 @@ services:
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
-    command: ["python3", "/opt/seerr/init-config.py"]
+    command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
     restart: on-failure
+    healthcheck:
+      disable: true
     networks:
       - media-server-network
     depends_on:
