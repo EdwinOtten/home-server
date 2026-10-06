@@ -21,6 +21,7 @@ services:
       SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key # docker secrets are always mounted to /run/secrets/ if no target is specified
       DOCKER_SWARM_FEATURES: false
       LOG_LEVEL: debug
+      NFS_SERVER_ADDR: ${NFS_SERVER_ADDR:-192.168.1.111}
       <<: *poll-config  # Uncomment this line to use the poll configuration from above (the `x-poll-config` section).
     secrets:
       - sops_age_key
