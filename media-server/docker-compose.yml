@@ -460,14 +460,14 @@ volumes:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=192.168.1.111,nolock,ro,soft,nfsvers=4
+      o: addr=${NFS_SERVER_ADDR:-192.168.1.111},nolock,ro,soft,nfsvers=4
       device: ":/volume1/downloads"
 
   media-server-remote-root:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=192.168.1.111,nfsvers=4,rw
+      o: addr=${NFS_SERVER_ADDR:-192.168.1.111},nfsvers=4,rw
       device: ":/volume1/media-server-storage"
 
   media-server-local-root:
