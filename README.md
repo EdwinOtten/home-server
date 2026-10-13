@@ -48,12 +48,13 @@ docker run -d \
   --privileged \
   -p 2049:2049 \
   -p 111:111/udp \
-  -v /tmp/nfs-export:/export \
-  erez/nfs-ganesha:latest
+  -v /tmp/nfs-root:/shared-dir \
+  -e SHARED_DIRECTORY=/shared-dir \
+  itsthenetwork/nfs-server-alpine:latest
 ```
 2. Create the export paths the stack expects
 ```bash
-docker exec local-nfs-server mkdir -p /export/volume1/media-server-storage /export/volume1/downloads
+mkdir -p /tmp/nfs-root/volume1/media-server-storage /tmp/nfs-root/volume1/downloads
 ```
 3. Get the NFS server IP
 ```bash
