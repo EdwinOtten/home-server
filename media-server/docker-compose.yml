@@ -2,7 +2,7 @@ services:
 
   init-folders:
     image: alpine
-    container_name: media-server-init
+    container_name: init-folders
     environment:
       - PUID=${PUID:?error}
       - PGID=${PGID:?error}
@@ -14,7 +14,9 @@ services:
       sh -c "mkdir -p /mnt/media-server-remote-root/media/movies 
       /mnt/media-server-remote-root/media/series 
       /mnt/media-server-remote-root/media/downloads/usenet/complete 
+      /mnt/media-server-remote-root/media/downloads/torrent/complete 
       /mnt/media-server-local-root/downloads/usenet/incomplete 
+      /mnt/media-server-local-root/downloads/torrent/incomplete 
       /mnt/media-server-local-root/services/sonarr 
       /mnt/media-server-local-root/services/radarr 
       /mnt/media-server-local-root/services/configarr 
@@ -24,16 +26,15 @@ services:
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
       && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
-      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root &&
-      tail -f /dev/null"
-    restart: no
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
+    restart: on-failure
     healthcheck:
       disable: true
 
   # qBitorrent is used to download torrents
 #  qbittorrent:
 #    image: lscr.io/linuxserver/qbittorrent:4.6.3
-#    container_name: qbittorrent2
+#    container_name: qbittorrent
 #    environment:
 #      - PUID=${PUID}
 #      - PGID=${PGID}
@@ -46,7 +47,7 @@ services:
 #        volume:
 #          subpath: media/downloads/torrent/complete
 #      - type: volume
-#        source: media-server-remote-root
+#        source: media-server-local-root
 #        target: /media/downloads/torrent/incomplete
 #        volume:
 #          subpath: media/downloads/torrent/incomplete
@@ -57,7 +58,7 @@ services:
 #          subpath: services/qbittorrent
 #    restart: unless-stopped
 #    ports:
-#      - 18081:8081
+#      - 8081:8081
 #    healthcheck:
 #      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
 #      interval: 30s
@@ -71,7 +72,7 @@ services:
   # SABnzbd is used to download from usenet
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
-    container_name: sabnzbd2
+    container_name: sabnzbd
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
@@ -108,7 +109,7 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.sh:/custom-cont-init.d/init-config.sh:ro
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.py:/opt/init-config.py:ro
     ports:
-      - 18080:8080
+      - 8082:8080
     restart: unless-stopped
     networks:
       - media-server-network
@@ -126,7 +127,7 @@ services:
   # https://sonarr.tv/
   sonarr:
     image: lscr.io/linuxserver/sonarr
-    container_name: sonarr2
+    container_name: sonarr
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -158,7 +159,7 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.py:/opt/sonarr-init-config.py:ro
     ports:
-      - 18989:8989
+      - 8989:8989
     restart: unless-stopped
     networks:
       - media-server-network
@@ -178,7 +179,7 @@ services:
   # https://radarr.video/
   radarr:
     image: lscr.io/linuxserver/radarr
-    container_name: radarr2
+    container_name: radarr
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -210,7 +211,7 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/radarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/radarr/init-config.py:/opt/init-config.py:ro
     ports:
-      - 17878:7878
+      - 7878:7878
     restart: unless-stopped
     networks:
       - media-server-network
@@ -249,7 +250,7 @@ services:
   # https://prowlarr.com/
   prowlarr:
     image: lscr.io/linuxserver/prowlarr
-    container_name: prowlarr2
+    container_name: prowlarr
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -277,7 +278,7 @@ services:
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.py:/opt/prowlarr-init-config.py:ro
     ports:
-      - 19696:9696
+      - 9696:9696
     restart: unless-stopped
     networks:
       - media-server-network
@@ -299,7 +300,7 @@ services:
   # https://www.bazarr.media/
   bazarr:
     image: lscr.io/linuxserver/bazarr
-    container_name: bazarr2
+    container_name: bazarr
     environment:
       - PUID=${PUID?:error}
       - PGID=${PGID?:error}
@@ -324,7 +325,7 @@ services:
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
     ports:
-      - 16767:6767
+      - 6767:6767
     restart: unless-stopped
     networks:
       - media-server-network
@@ -346,7 +347,7 @@ services:
   # https://jellyfin.org/
   jellyfin:
     image: lscr.io/linuxserver/jellyfin
-    container_name: jellyfin2
+    container_name: jellyfin
     environment:
       - PUID=${PUID:?error}
       - PGID=${PGID:?error}
@@ -355,8 +356,8 @@ services:
       - JELLYFIN_ADMIN_USER=${JELLYFIN_ADMIN_USER:?error}
       - JELLYFIN_ADMIN_PASSWORD=${JELLYFIN_ADMIN_PASSWORD:?error}
     ports:
-      - 18096:8096/tcp
-      - 17359:7359/udp
+      - 8096:8096/tcp
+      - 7359:7359/udp
     volumes:
       - type: volume
         source: media-server-local-root
@@ -370,14 +371,13 @@ services:
         target: /media
         volume:
           subpath: media
-      - old-downloads:/old-downloads
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.sh:/custom-cont-init.d/init-config.sh:ro
       - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.py:/opt/init-config.py:ro
     devices:
-      - /dev/dri/renderD128:/dev/dri/renderD128
+      - /dev/dri:/dev/dri
     restart: 'unless-stopped'
     networks:
       - media-server-network
@@ -471,18 +471,11 @@ networks:
     driver: bridge
 
 volumes:
-  old-downloads:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NFS_SERVER_ADDR:-192.168.1.111},nolock,ro,soft,nfsvers=4
-      device: ":/volume1/downloads"
-
   media-server-remote-root:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=${NFS_SERVER_ADDR:-192.168.1.111},nfsvers=4,rw
+      o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
       device: ":/volume1/media-server-storage"
 
   media-server-local-root:

@@ -1,6 +1,6 @@
 x-poll-config: &poll-config
  POLL_CONFIG: |
-   - url: ${REPO_URL:-https://github.com/EdwinOtten/home-server.git}  # This is the repository to poll
+   - url: ${REPO_URL:-file:////repo}  # This is the repository to poll
      reference: ${REPO_REF:-main}  # Optional: specify the branch or tag to poll, defaults to 'main'
      interval: ${POLL_INTERVAL:-60}  # Optional: specify the interval in seconds to poll the repository, defaults to 180 seconds (3 minutes)
      run_once: ${RUN_ONCE:-false}  # Optional: when true, stops polling after initial run (useful for local testing)

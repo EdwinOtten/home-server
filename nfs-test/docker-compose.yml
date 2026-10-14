@@ -22,5 +22,5 @@ volumes:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=${NFS_SERVER_ADDR:-192.168.1.111},nfsvers=4,rw
+      o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
       device: ":/volume1/media-server-storage"

@@ -41,32 +41,38 @@ TODO: split the tip above into 2 use cases (rotating keys after breach & adding 
 
 To test locally without pushing to GitHub, you need a real NFS server. Use `nfs-ganesha` in Docker:
 
+1. Create the export paths the stack expects
+   ```bash
+   mkdir -p /tmp/nfs-root/volume1/media-server-storage /tmp/   nfs-root/volume1/downloads
+   ```
+
 1. Start a containerized NFS server
-```bash
-docker run -d \
-  --name local-nfs-server \
-  --privileged \
-  -p 2049:2049 \
-  -p 111:111/udp \
-  -v /tmp/nfs-root:/shared-dir \
-  -e SHARED_DIRECTORY=/shared-dir \
-  itsthenetwork/nfs-server-alpine:latest
-```
-2. Create the export paths the stack expects
-```bash
-mkdir -p /tmp/nfs-root/volume1/media-server-storage /tmp/nfs-root/volume1/downloads
-```
-3. Get the NFS server IP
-```bash
-export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' local-nfs-server)
-echo "NFS server at: $NFS_SERVER_ADDR"
-```
-4. Test NFS connectivity
-```bash
-cd nfs-test
-NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose up
-# Should complete successfully if the NFS mount works
-```
+   ```bash
+   # Create paths the stack expects
+   mkdir -p /tmp/nfs-root/volume1/media-server-storage
+   # Remove NFS server if already running
+   docker ps -a | grep nfs-server && docker stop nfs-server && docker rm nfs-server
+   # Start NFS server
+   docker run -d \
+   --name nfs-server \
+   --privileged \
+   -p 2049:2049 \
+   -p 111:111/udp \
+   -v /tmp/nfs-root:/shared-dir \
+   -e SHARED_DIRECTORY=/shared-dir \
+   itsthenetwork/nfs-server-alpine:latest
+   ```
+
+2. Get the NFS server IP
+   ```bash
+   export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nfs-server)
+   echo "NFS server at: $NFS_SERVER_ADDR"
+   ```
+3. Test NFS connectivity (should complete successfully if the NFS mount works)
+   ```bash
+   cd nfs-test
+   NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose up
+   ```
 
 ### Testing Individual Workloads
 
@@ -75,8 +81,8 @@ Once NFS is running, test a specific workload:
 ```bash
 cd media-server
 sops decrypt .enc.env > .env
-export NFS_SERVER_ADDR="<test-nfs-ip>"
-docker compose up -d
+export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nfs-server)
+NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose up -d
 docker ps  # Check container health
 docker logs <container_name>  # View logs
 ```
@@ -87,10 +93,10 @@ Test doco-cd repository polling against your local checkout without pushing to G
 
 ```bash
 # Ensure NFS server is running (see Quick Start above)
-export NFS_SERVER_ADDR="<test-nfs-ip>"
+export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nfs-server)
 
 # Run doco-cd in one-shot mode pointing to local repo
-REPO_URL=file:///repo RUN_ONCE=true docker compose up -d
+REPO_URL=file:///$PWD REPO_DIR=$PWD NFS_SERVER_ADDR="$NFS_SERVER_ADDR" RUN_ONCE=true docker compose up -d
 
 # Inspect deployment logs
 docker logs -f home-server
@@ -100,8 +106,8 @@ docker logs -f home-server
 
 ```bash
 # Stop and remove the local NFS server
-docker stop local-nfs-server
-docker rm local-nfs-server
+docker stop nfs-server
+docker rm nfs-server
 rm -rf /tmp/nfs-export
 ```
 
