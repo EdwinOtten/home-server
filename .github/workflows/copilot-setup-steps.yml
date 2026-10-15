@@ -31,7 +31,12 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/githubnext/gh-aw/refs/heads/main/install-gh-aw.sh | bash
 
-      - name: Setup SOPS
+      - name: Install age
+        uses: alessiodionisi/setup-age-action@v1.4.0
+        with:
+          version: ^1.3.1
+
+      - name: Install SOPS
         uses: nhedger/setup-sops@v2
 
       # Verify installations
@@ -40,5 +45,6 @@ jobs:
           echo "=== Verifying installations ==="
           docker --version
           gh aw version
+          age --version
           sops --version
           echo "✅ All tools installed successfully"

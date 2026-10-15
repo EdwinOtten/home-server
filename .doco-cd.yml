@@ -12,6 +12,9 @@ destroy_opts:
   remove_dir: false
 env_files:
   - .enc.env
+environment:
+  NFS_SERVER_ADDR: ${NFS_SERVER_ADDR}
+  LOCAL_VOLUME_LOCATION: ${LOCAL_VOLUME_LOCATION}
 
 ---
 name: monitoring
@@ -19,13 +22,6 @@ working_dir: monitoring/
 compose_files:
   - docker-compose.yml
 reconciliation: true
-
-#---
-#name: nfs-test
-#working_dir: nfs-test/
-#compose_files:
-#  - docker-compose.yml
-#force_recreate: true
 
 #---
 #name: tailscale

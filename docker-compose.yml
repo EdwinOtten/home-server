@@ -1,6 +1,6 @@
 x-poll-config: &poll-config
  POLL_CONFIG: |
-   - url: ${REPO_DIR:+file:///local_repo}${REPO_DIR:-${REPO_URL}}  # Repository to poll: local mount if REPO_DIR is set, otherwise REPO_URL
+   - url: ${REPO_URL:-file:///local_repo}  # Repository to poll: REPO_URL if set, otherwise local mount
      reference: ${REPO_REF:-main}  # Optional: specify the branch or tag to poll, defaults to 'main'
      interval: ${POLL_INTERVAL:-60}  # Optional: specify the interval in seconds to poll the repository, defaults to 180 seconds (3 minutes)
      run_once: ${RUN_ONCE:-false}  # Optional: when true, stops polling after initial run (useful for local testing)
@@ -21,13 +21,14 @@ services:
       SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key # docker secrets are always mounted to /run/secrets/ if no target is specified
       DOCKER_SWARM_FEATURES: false
       LOG_LEVEL: debug
+      PASS_ENV: true
       NFS_SERVER_ADDR: ${NFS_SERVER_ADDR:-192.168.1.111}
       <<: *poll-config  # Uncomment this line to use the poll configuration from above (the `x-poll-config` section).
     secrets:
       - sops_age_key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/home-server-data:/data
+      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}:/data
       - ${REPO_DIR:-.}:/local_repo:ro
     healthcheck:
       start_period: 15s
