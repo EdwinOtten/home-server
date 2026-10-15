@@ -1,6 +1,6 @@
 x-poll-config: &poll-config
  POLL_CONFIG: |
-   - url: ${REPO_URL:-file:////repo}  # This is the repository to poll
+   - url: ${REPO_DIR:+file:///local_repo}${REPO_DIR:-${REPO_URL}}  # Repository to poll: local mount if REPO_DIR is set, otherwise REPO_URL
      reference: ${REPO_REF:-main}  # Optional: specify the branch or tag to poll, defaults to 'main'
      interval: ${POLL_INTERVAL:-60}  # Optional: specify the interval in seconds to poll the repository, defaults to 180 seconds (3 minutes)
      run_once: ${RUN_ONCE:-false}  # Optional: when true, stops polling after initial run (useful for local testing)
@@ -28,7 +28,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/home-server-data:/data
-      - ${REPO_DIR:-.}:/repo:ro
+      - ${REPO_DIR:-.}:/local_repo:ro
     healthcheck:
       start_period: 15s
       interval: 30s
