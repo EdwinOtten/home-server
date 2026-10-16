@@ -25,6 +25,8 @@ jobs:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
 
       # Install gh-aw extension for advanced GitHub CLI features
       - name: Install gh-aw extension
