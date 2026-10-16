@@ -448,8 +448,12 @@ services:
       - SEERR_SONARR_QUALITY_PROFILE=${SEERR_SONARR_QUALITY_PROFILE:-HD-1080p}
       - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
-    volumes:
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+    # Provided via `configs` (not a bind mount) so that a change to the script
+    # changes the service config hash; `docker compose up` (run by doco-cd on every
+    # new commit) then recreates this container and re-runs the idempotent script.
+    configs:
+      - source: seerr-init-config
+        target: /opt/seerr/init-config.py
     command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
     restart: on-failure
     healthcheck:
@@ -465,6 +469,10 @@ services:
         condition: service_healthy
       radarr:
         condition: service_healthy
+
+configs:
+  seerr-init-config:
+    file: ./seerr/init-config.py
 
 networks:
   media-server-network:
