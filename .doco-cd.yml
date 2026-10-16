@@ -13,8 +13,7 @@ destroy_opts:
 env_files:
   - .enc.env
 environment:
-  NFS_SERVER_ADDR: ${NFS_SERVER_ADDR}
-  LOCAL_VOLUME_LOCATION: ${LOCAL_VOLUME_LOCATION}
+  NFS_SERVER_ADDR: ${NFS_SERVER_ADDR:-192.168.1.111}
 
 ---
 name: monitoring
