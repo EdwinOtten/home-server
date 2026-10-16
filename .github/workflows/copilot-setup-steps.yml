@@ -39,6 +39,21 @@ jobs:
       - name: Install SOPS
         uses: nhedger/setup-sops@v2
 
+      - name: Prepare SOPS key file for docker compose
+        shell: bash
+        run: |
+          if [[ -n "${SOPS_AGE_KEY:-}" ]]; then
+            umask 077
+            printf '%s' "${SOPS_AGE_KEY}" > sops_age_key.txt
+            echo "✅ Created sops_age_key.txt from SOPS_AGE_KEY environment variable"
+          elif [[ -f sops_age_key.txt ]]; then
+            chmod 600 sops_age_key.txt
+            echo "✅ Using existing sops_age_key.txt from repository workspace"
+          else
+            echo "❌ Missing SOPS key material. Configure Agent secret SOPS_AGE_KEY or provide sops_age_key.txt." >&2
+            exit 1
+          fi
+
       # Verify installations
       - name: Verify tool installations
         run: |

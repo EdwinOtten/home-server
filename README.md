@@ -101,6 +101,11 @@ rm -r /tmp/nfs-root/volume1/media-server-storage
    sops edit media-server/.enc.env
    ```
 
+### Copilot cloud agent key source
+
+For GitHub Copilot cloud agent tasks, configure a repository Agent secret named `SOPS_AGE_KEY`.  
+The setup workflow (`.github/workflows/copilot-setup-steps.yml`) automatically writes that secret to `sops_age_key.txt`, so the root `docker-compose.yml` works the same on both the cloud agent and production environment.
+
 **Tip:** if you want to rotate a key, or lost (access to) a private age key you likely want to add a new fingerprint/public age key and remove the old one. To do so, get onto a machine that still has a valid private age key, then remove the old fingerprint/public key from `.sops.yml` except the fingerprint of the machine you're currently using. Optionally, add any new fingerprints of age keys you want to start using. Then re-encrypt all files. After that, you can edit the files using `sops edit` and start rotating secrets.
 
 TODO: split the tip above into 2 use cases (rotating keys after breach & adding a new keypair to a key group)
