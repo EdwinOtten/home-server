@@ -239,9 +239,9 @@ services:
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
     volumes:
       - configarr-cache:/app/repos # Cache repositories
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
-      - /opt/home-server-data/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+      - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
+      - ./configarr/templates:/app/templates # Optional if custom templates
+      - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
     restart: unless-stopped # optional make sure this is set to no or removed. Default is no
     networks:
       - media-server-network
