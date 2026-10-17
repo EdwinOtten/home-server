@@ -106,8 +106,8 @@ services:
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/sabnzbd/init-config.py:/opt/init-config.py:ro
+      - ./sabnzbd/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./sabnzbd/init-config.py:/opt/init-config.py:ro
     ports:
       - 8082:8080
     restart: unless-stopped
@@ -156,8 +156,8 @@ services:
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/sonarr/init-config.py:/opt/sonarr-init-config.py:ro
+      - ./sonarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./sonarr/init-config.py:/opt/sonarr-init-config.py:ro
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -208,8 +208,8 @@ services:
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/radarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/radarr/init-config.py:/opt/init-config.py:ro
+      - ./radarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./radarr/init-config.py:/opt/init-config.py:ro
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -238,9 +238,9 @@ services:
   #    - TZ=${TZ?:error}
   #  volumes:
   #    - /opt/configarr-cache:/app/repos # Cache repositories
-  #    - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/configarr/config:/app/config # Contains the config.yml and secrets.yml
-  #    - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/configarr/templates:/app/templates # Optional if custom templates
-  #    # - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+  #    - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
+  #    - ./configarr/templates:/app/templates # Optional if custom templates
+  #    # - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
   #  # restart: "no" # optional make sure this is set to no or removed. Default is no
   #  networks:
   #    - media-server-network
@@ -275,8 +275,8 @@ services:
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/prowlarr/init-config.py:/opt/prowlarr-init-config.py:ro
+      - ./prowlarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./prowlarr/init-config.py:/opt/prowlarr-init-config.py:ro
     ports:
       - 9696:9696
     restart: unless-stopped
@@ -323,7 +323,7 @@ services:
           subpath: services/bazarr
       # Mount the init script into the LSIO init directory
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
     ports:
       - 6767:6767
     restart: unless-stopped
@@ -374,8 +374,8 @@ services:
       # Mount the init scripts into the LSIO init directory.
       # LinuxServer runs custom-cont-init.d scripts via /bin/bash
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/jellyfin/init-config.py:/opt/init-config.py:ro
+      - ./jellyfin/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./jellyfin/init-config.py:/opt/init-config.py:ro
     devices:
       - /dev/dri:/dev/dri
     restart: 'unless-stopped'
@@ -449,7 +449,7 @@ services:
       - SEERR_RADARR_EXTERNAL_URL=${SEERR_RADARR_EXTERNAL_URL:-http://radarr:7878}
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}/github.com/EdwinOtten/home-server/media-server/seerr:/opt/seerr:ro
+      - ./seerr:/opt/seerr:ro
     command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
     restart: on-failure
     healthcheck:

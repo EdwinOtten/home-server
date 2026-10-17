@@ -12,10 +12,6 @@ destroy_opts:
   remove_dir: false
 env_files:
   - .enc.env
-environment:
-  NFS_SERVER_ADDR: ${NFS_SERVER_ADDR}
-  LOCAL_VOLUME_LOCATION: ${LOCAL_VOLUME_LOCATION}
-
 ---
 name: monitoring
 working_dir: monitoring/
