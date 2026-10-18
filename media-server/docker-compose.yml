@@ -247,8 +247,12 @@ services:
     command: >
       sh -c "apk add --no-cache ca-certificates su-exec
       && update-ca-certificates
-      && exec su-exec ${PUID?:error}:${PGID?:error} dumb-init node index.js"
-    restart: unless-stopped # optional make sure this is set to no or removed. Default is no
+      && su-exec ${PUID?:error}:${PGID?:error} dumb-init node index.js
+      && exec tail -f /dev/null"
+    # Configarr is a one-shot synchronizer. Keep the successful container
+    # running so Doco-CD considers the deployment healthy; reconciliation
+    # recreates it when this stack changes.
+    restart: "no"
     networks:
       - media-server-network
     depends_on:
