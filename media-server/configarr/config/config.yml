@@ -1,4 +1,5 @@
 telemetry: false
+localCustomFormatsPath: /app/cfs
 sonarrEnabled: true
 radarrEnabled: true
 whisparrEnabled: false
@@ -168,4 +169,3 @@ radarr:
         assign_scores_to:
           - name: HD-1080p
             score: 200
-
