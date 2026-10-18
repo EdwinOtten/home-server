@@ -232,7 +232,9 @@ services:
   configarr:
     image: ghcr.io/raydak-labs/configarr:latest
     container_name: configarr
-    user: ${PUID?:error}:${PGID?:error}
+    # Install the CA bundle as root, then run Configarr with the configured
+    # unprivileged UID/GID.
+    user: root
     environment:
       - TZ=${TZ?:error}
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
@@ -242,6 +244,10 @@ services:
       - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
       - ./configarr/templates:/app/templates # Optional if custom templates
       - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+    command: >
+      sh -c "apk add --no-cache ca-certificates su-exec
+      && update-ca-certificates
+      && exec su-exec ${PUID?:error}:${PGID?:error} dumb-init node index.js"
     restart: unless-stopped # optional make sure this is set to no or removed. Default is no
     networks:
       - media-server-network
