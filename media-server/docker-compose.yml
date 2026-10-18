@@ -324,6 +324,7 @@ services:
       # Mount the init script into the LSIO init directory
       # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
       - ./bazarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
+      - ./bazarr/init-config.py:/opt/init-config.py:ro
     ports:
       - 6767:6767
     restart: unless-stopped
