@@ -239,6 +239,7 @@ services:
       - TZ=${TZ?:error}
       - RADARR_API_KEY=${RADARR_API_KEY:?error}
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
+      - STOP_ON_ERROR=true
     volumes:
       - configarr-cache:/app/repos # Cache repositories
       - ./configarr/config:/app/config # Contains the config.yml and secrets.yml

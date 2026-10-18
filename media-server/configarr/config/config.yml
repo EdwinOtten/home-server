@@ -65,7 +65,7 @@ sonarr:
 
 # HDR-related rules for UltraHD
       - trash_ids:
-          - 3e2c4e748b64a1a1118e0ea3f4cf6875 # Matches HDR (not HDR10(+))
+          - 505d871304820ba7106b693be6fe4a9e # Matches HDR
           - 7878c33f1963fefb3d6c8657d46c2f0a # Matches Dolby Vision with HDR10 fallback
           - 9b27ab6498ec0f31a3353992e19434ca # Prevents Dolby Vision WEBDL (which dont have a HDR10 fallback)
           - 2016d1676f5ee13a5b7257ff86ac9a93 # Prevents SDR for 4K          
@@ -147,7 +147,7 @@ radarr:
 
 # HDR-related rules for UltraHD            
       - trash_ids:
-          - e61e28db95d22bedcadf030b8f156d96 # Matches HDR (not HDR10(+))
+          - 493b6d1dbec3c3364c59d7607f7e3405 # Matches HDR
           - e23edd2482476e595fb990b12e7c609c # Matches Dolby Vision with HDR10 fallback
           - 923b6abef9b17f937fab56cfcf89e1f1 # Prevents Dolby Vision WEBDL (which dont have a HDR10 fallback)
           - 9c38ebb7384dada637be8899efa68e6f # Prevents SDR for 4K          
