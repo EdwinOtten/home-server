@@ -41,3 +41,5 @@ update_section "sonarr"  "port"   "$SONARR_PORT"
 chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
 
 echo "API keys synchronized."
+
+python3 /opt/init-config.py
