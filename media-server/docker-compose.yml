@@ -9,6 +9,7 @@ services:
     volumes:
       - media-server-remote-root:/mnt/media-server-remote-root
       - media-server-local-root:/mnt/media-server-local-root
+      - configarr-cache:/mnt/configarr-cache
     # This command creates all subdirectories at once and sets correct ownership
     command: >
       sh -c "mkdir -p /mnt/media-server-remote-root/media/movies 
@@ -25,8 +26,8 @@ services:
       /mnt/media-server-local-root/services/seerr 
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
-      && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root && 
-      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root"
+      && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache &&
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache"
     restart: on-failure
     healthcheck:
       disable: true
@@ -228,22 +229,48 @@ services:
         condition: service_healthy
 
   # Configarr is used to manage quality profilea and custom formats. Configarr pushes theses to Radarr/Sonarr.
-  #configarr:
-  #  image: ghcr.io/raydak-labs/configarr:1.17.2
-  #  container_name: configarr
-  #  user: ${PUID?:error}:${PGID?:error}
-  #  depends_on:
-  #    - sonarr
-  #  environment:
-  #    - TZ=${TZ?:error}
-  #  volumes:
-  #    - /opt/configarr-cache:/app/repos # Cache repositories
-  #    - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
-  #    - ./configarr/templates:/app/templates # Optional if custom templates
-  #    # - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
-  #  # restart: "no" # optional make sure this is set to no or removed. Default is no
-  #  networks:
-  #    - media-server-network
+  configarr:
+    image: ghcr.io/raydak-labs/configarr:latest
+    container_name: configarr
+    # Install the CA bundle as root, then run Configarr with the configured
+    # unprivileged UID/GID.
+    user: root
+    environment:
+      - TZ=${TZ?:error}
+      - RADARR_API_KEY=${RADARR_API_KEY:?error}
+      - SONARR_API_KEY=${SONARR_API_KEY:?error}
+      - STOP_ON_ERROR=true
+    volumes:
+      - configarr-cache:/app/repos # Cache repositories
+      - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
+      - ./configarr/templates:/app/templates # Optional if custom templates
+      - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided
+    command: >
+      sh -c "rm -f /tmp/configarr-sync-complete
+      && apk add --no-cache ca-certificates su-exec
+      && update-ca-certificates
+      && su-exec ${PUID?:error}:${PGID?:error} dumb-init node index.js
+      && touch /tmp/configarr-sync-complete
+      && exec tail -f /dev/null"
+    # Configarr is a one-shot synchronizer. Keep the successful container
+    # running so Doco-CD considers the deployment healthy; reconciliation
+    # recreates it when this stack changes.
+    restart: "no"
+    networks:
+      - media-server-network
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/configarr-sync-complete"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10m
+    depends_on:
+      init-folders:
+        condition: service_completed_successfully
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
 
 
   # Prowlarr is our torrent indexer/searcher. Preolarr pushes indexes to Sonarr/Radarr.
@@ -479,3 +506,4 @@ volumes:
       device: ":/volume1/media-server-storage"
 
   media-server-local-root:
+  configarr-cache:
