@@ -68,7 +68,7 @@ mkdir -p /tmp/home-server-data
 export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nfs-server)
 
 # Run doco-cd in one-shot mode pointing to local repo
-REPO_DIR=$PWD REPO_REF=$(git rev-parse HEAD) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose up -d
+REPO_DIR=$PWD REPO_REF=$(git branch --show-current) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose up -d
 ```
 
 ### Cleanup
@@ -76,7 +76,7 @@ REPO_DIR=$PWD REPO_REF=$(git rev-parse HEAD) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" 
 After testing, and between testing multiple changes, use the commands below to cleanup 
 ```bash
 # Stop and remove all media-server containers and its network
-REPO_DIR=$PWD REPO_REF=$(git rev-parse HEAD) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose down
+REPO_DIR=$PWD REPO_REF=$(git branch --show-current) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose down
 LOCAL_VOLUME_LOCATION=/tmp/home-server-data docker compose -f media-server/docker-compose.yml down
 sudo rm -rf /tmp/home-server-data
 ```
