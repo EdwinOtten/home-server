@@ -15,8 +15,6 @@ jobs:
   # The job MUST be called 'copilot-setup-steps' to be recognized by GitHub Copilot Agent
   copilot-setup-steps:
     runs-on: ubuntu-latest
-    env:
-      SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
     # Set minimal permissions for setup steps
     # Copilot Agent receives its own token with appropriate permissions
@@ -46,6 +44,7 @@ jobs:
       - name: Prepare SOPS key file for docker compose
         shell: bash
         run: |
+          printf 'SOPS_AGE_KEY is set: %s, length: %s\n' "${SOPS_AGE_KEY+x}" "${#SOPS_AGE_KEY}"
           if [[ -n "${SOPS_AGE_KEY:-}" ]]; then
             umask 077
             printf '%s' "${SOPS_AGE_KEY}" > sops_age_key.txt
