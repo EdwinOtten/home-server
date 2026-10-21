@@ -13,6 +13,23 @@ This home server project is based on Docker Compose files and is deployed in a G
 - .doco-cd.yml             # specifies the deployments doco-cd should do
 ```
 
+## Copilot cloud-agent setup
+
+Agents secrets and variables are available to the Copilot agent but not to the `copilot-setup-steps.yml` workflow. Before running Docker Compose or any command that needs the SOPS key, create the local key file from the `SOPS_AGE_KEY` environment variable if it does not already exist:
+
+```bash
+if [[ -f sops_age_key.txt ]]; then
+  chmod 600 sops_age_key.txt
+elif [[ -n "${SOPS_AGE_KEY:-}" ]]; then
+  (umask 077 && printf '%s' "$SOPS_AGE_KEY" > sops_age_key.txt)
+else
+  echo "Missing SOPS key material" >&2
+  exit 1
+fi
+```
+
+Never print or otherwise disclose the value of `SOPS_AGE_KEY`. Verify only that `sops_age_key.txt` exists and has mode `600`.
+
 ## Developing/implementing an issue:
 1. Before making code changes, follow the testing instructions below to verify the current state of the code.
   - Only start developing the new functionality if all containers in this project are healthy or stopped with exit code 0.
