@@ -44,6 +44,8 @@ jobs:
       - name: Prepare SOPS key file for docker compose
         shell: bash
         run: |
+          printf 'MY_TEST_VAR=%s\n' "${MY_TEST_VAR-unset}"
+          printf 'MY_TEST_SECRET=%s\n' "${MY_TEST_SECRET-unset}"
           printf 'SOPS_AGE_KEY is set: %s, length: %s\n' "${SOPS_AGE_KEY+x}" "${#SOPS_AGE_KEY}"
           if [[ -n "${SOPS_AGE_KEY:-}" ]]; then
             umask 077
