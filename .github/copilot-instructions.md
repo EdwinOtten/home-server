@@ -32,7 +32,7 @@ Never print or disclose `SOPS_AGE_KEY`. Verify only that `sops_age_key.txt` exis
    - `docker ps` shows expected containers running.
    - Every container with a healthcheck is `healthy`; containers intended to exit have exit code `0`.
    - There are no unexpected restart loops or fatal container errors.
-3. If the baseline has an unexpected failure, collect the relevant container status and logs, report the failure, and stop. Do not modify unrelated infrastructure to work around it.
+3. If the baseline has an unexpected failure, collect the relevant container status and logs, analyse them, then report the failure + suggested next steps and stop. Do not modify unrelated infrastructure to work around it.
 4. Make the smallest change that implements the request.
 5. Use the README cleanup procedure, redeploy from scratch, and repeat the verification checks. Use `docker logs [containerName]` when a deployment or healthcheck fails.
 6. Commit changes only after the post-change verification passes. Create a pull request only when requested.
