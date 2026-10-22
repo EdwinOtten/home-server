@@ -71,8 +71,6 @@ export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{
 REPO_DIR=$PWD REPO_REF=$(git branch --show-current) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose up -d
 ```
 
-The deployment source remains the mounted local repository (`file:///local_repo`);
-the `git fetch --unshallow` command only completes the local clone when needed.
 
 ### Cleanup
 
