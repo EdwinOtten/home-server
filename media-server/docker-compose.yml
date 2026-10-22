@@ -478,7 +478,7 @@ services:
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - ./seerr:/opt/seerr:ro
-    command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
+    command: ["python3", "/opt/seerr/init-config.py"]
     restart: on-failure
     healthcheck:
       disable: true

@@ -102,20 +102,31 @@ def authenticate_with_raw_response(email):
             set_cookie = response.headers.get_all("Set-Cookie", [])
             return get_cookie_headers(set_cookie)
 
+    max_attempts = int(os.environ.get("SEERR_AUTH_RETRIES", "12"))
+    retry_delay = float(os.environ.get("SEERR_AUTH_RETRY_DELAY", "5"))
     log("Authenticating Seerr with Jellyfin admin account...")
-    try:
-        return do_auth(payload)
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode(errors="ignore")
-        # Seerr rejects providing a hostname when Jellyfin has already been configured.
-        # Retry without explicit host fields so it can authenticate against existing settings.
-        if exc.code == 500:
-            log("Authenticating Seerr with Jellyfin admin account returned 500 error; retrying auth with existing server settings.")
-            retry_payload = dict(payload)
-            for field in ("hostname", "port", "useSsl", "urlBase"):
-                retry_payload.pop(field, None)
-            return do_auth(retry_payload)
-        raise RuntimeError(f"POST /api/v1/auth/jellyfin failed: {exc.code} {error_body}") from exc
+    auth_payload = payload
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return do_auth(auth_payload)
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode(errors="ignore")
+            # Seerr may reject authentication briefly while Jellyfin finishes startup.
+            if exc.code == 401 and attempt < max_attempts:
+                delay = min(retry_delay * (2 ** (attempt - 1)), 30)
+                log(f"Jellyfin authentication is not ready (401); retrying in {delay:g}s ({attempt}/{max_attempts}).")
+                time.sleep(delay)
+                continue
+            # Seerr rejects providing a hostname when Jellyfin has already been configured.
+            # Retry without explicit host fields so it can authenticate against existing settings.
+            if exc.code == 500 and auth_payload is payload:
+                log("Authenticating Seerr with Jellyfin admin account returned 500 error; retrying auth with existing server settings.")
+                auth_payload = dict(payload)
+                for field in ("hostname", "port", "useSsl", "urlBase"):
+                    auth_payload.pop(field, None)
+                continue
+            raise RuntimeError(f"POST /api/v1/auth/jellyfin failed: {exc.code} {error_body}") from exc
+    raise RuntimeError("Seerr authentication retries exhausted.")
 
 
 def configure_jellyfin(api_headers):
