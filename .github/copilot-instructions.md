@@ -27,6 +27,11 @@ Never print or disclose `SOPS_AGE_KEY`. Verify only that `sops_age_key.txt` exis
 ## Required development workflow
 
 1. Read and follow the local testing and cleanup procedures in `README.md`.
+   The cloud agent checkout may be shallow, while normal developer checkouts
+   usually are not. Before local Doco-CD deployment, if
+   `git rev-parse --is-shallow-repository` returns `true`, run
+   `git fetch --unshallow` so Doco-CD can resolve the complete local Git
+   source.
 2. Before editing, run the documented local deployment and verify the baseline:
    - `docker logs --since 5m home-server` shows no deployment errors.
    - `docker ps` shows expected containers running.

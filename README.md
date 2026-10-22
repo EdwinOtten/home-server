@@ -60,13 +60,6 @@ NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose -f nfs-test/docker-compose.yml
 Once NFS is running, you can test the deployment your changes without pushing to GitHub by running:
 
 ```bash
-# Doco-CD fetches the local Git source into a bare mirror. It needs the
-# complete history because a shallow source cannot provide all referenced
-# objects during the local fetch.
-if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
-  git fetch --unshallow
-fi
-
 # Create temporary location for local deployment
 rm -rf /tmp/home-server-data
 mkdir -p /tmp/home-server-data
