@@ -4,7 +4,6 @@ import json
 import os
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 
 PREFIX = "[seerr-init]"
@@ -103,20 +102,31 @@ def authenticate_with_raw_response(email):
             set_cookie = response.headers.get_all("Set-Cookie", [])
             return get_cookie_headers(set_cookie)
 
+    max_attempts = int(os.environ.get("SEERR_AUTH_RETRIES", "12"))
+    retry_delay = float(os.environ.get("SEERR_AUTH_RETRY_DELAY", "5"))
     log("Authenticating Seerr with Jellyfin admin account...")
-    try:
-        return do_auth(payload)
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode(errors="ignore")
-        # Seerr rejects providing a hostname when Jellyfin has already been configured.
-        # Retry without explicit host fields so it can authenticate against existing settings.
-        if exc.code == 500:
-            log("Authenticating Seerr with Jellyfin admin account returned 500 error; retrying auth with existing server settings.")
-            retry_payload = dict(payload)
-            for field in ("hostname", "port", "useSsl", "urlBase"):
-                retry_payload.pop(field, None)
-            return do_auth(retry_payload)
-        raise RuntimeError(f"POST /api/v1/auth/jellyfin failed: {exc.code} {error_body}") from exc
+    auth_payload = payload
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return do_auth(auth_payload)
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode(errors="ignore")
+            # Seerr may reject authentication briefly while Jellyfin finishes startup.
+            if exc.code == 401 and attempt < max_attempts:
+                delay = min(retry_delay * (2 ** (attempt - 1)), 30)
+                log(f"Jellyfin authentication is not ready (401); retrying in {delay:g}s ({attempt}/{max_attempts}).")
+                time.sleep(delay)
+                continue
+            # Seerr rejects providing a hostname when Jellyfin has already been configured.
+            # Retry without explicit host fields so it can authenticate against existing settings.
+            if exc.code == 500 and auth_payload is payload:
+                log("Authenticating Seerr with Jellyfin admin account returned 500 error; retrying auth with existing server settings.")
+                auth_payload = dict(payload)
+                for field in ("hostname", "port", "useSsl", "urlBase"):
+                    auth_payload.pop(field, None)
+                continue
+            raise RuntimeError(f"POST /api/v1/auth/jellyfin failed: {exc.code} {error_body}") from exc
+    raise RuntimeError("Seerr authentication retries exhausted.")
 
 
 def configure_jellyfin(api_headers):
@@ -142,18 +152,24 @@ def configure_jellyfin(api_headers):
     )
 
     log("Syncing and enabling Jellyfin libraries...")
+    request(
+        "POST",
+        "/api/v1/settings/jellyfin/library/sync",
+        headers=api_headers,
+        expected=(200,),
+    )
     libraries = request(
         "GET",
-        "/api/v1/settings/jellyfin/library?sync=true",
+        "/api/v1/settings/jellyfin/library",
         headers=api_headers,
         expected=(200,),
     )
     library_ids = [lib.get("id") for lib in libraries if lib.get("id")]
-    if library_ids:
-        enable_query = urllib.parse.quote(",".join(library_ids), safe="")
+    for library_id in library_ids:
         request(
-            "GET",
-            f"/api/v1/settings/jellyfin/library?enable={enable_query}",
+            "PUT",
+            f"/api/v1/settings/jellyfin/library/{library_id}",
+            payload={"enabled": True},
             headers=api_headers,
             expected=(200,),
         )
@@ -205,14 +221,23 @@ def select_profile(profiles, preferred_name):
     return (profiles or [{}])[0]
 
 
+def select_root_folder(root_folders, default_path):
+    if root_folders:
+        return root_folders[0]
+    return {"path": default_path}
+
+
 def desired_radarr_payload(test_data):
     profiles = test_data.get("profiles") or []
     root_folders = test_data.get("rootFolders") or []
     preferred_profile = os.environ.get("SEERR_RADARR_QUALITY_PROFILE", "HD-1080p")
     profile = select_profile(profiles, preferred_profile)
-    root = root_folders[0] if root_folders else {}
-    if not profile.get("id") or not root.get("path"):
-        raise RuntimeError("Unable to determine Radarr profile/root folder from test endpoint.")
+    root = select_root_folder(
+        root_folders,
+        os.environ.get("SEERR_RADARR_ROOT_FOLDER", "/media/movies"),
+    )
+    if not profile.get("id"):
+        raise RuntimeError("Unable to determine Radarr quality profile from test endpoint.")
 
     return {
         "name": "Radarr",
@@ -241,10 +266,13 @@ def desired_sonarr_payload(test_data):
     language_profiles = test_data.get("languageProfiles") or []
     preferred_profile = os.environ.get("SEERR_SONARR_QUALITY_PROFILE", "HD-1080p")
     profile = select_profile(profiles, preferred_profile)
-    root = root_folders[0] if root_folders else {}
+    root = select_root_folder(
+        root_folders,
+        os.environ.get("SEERR_SONARR_ROOT_FOLDER", "/media/series"),
+    )
     language_id = language_profiles[0]["id"] if language_profiles else None
-    if not profile.get("id") or not root.get("path"):
-        raise RuntimeError("Unable to determine Sonarr profile/root folder from test endpoint.")
+    if not profile.get("id"):
+        raise RuntimeError("Unable to determine Sonarr quality profile from test endpoint.")
 
     payload = {
         "name": "Sonarr",
