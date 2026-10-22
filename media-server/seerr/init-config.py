@@ -4,7 +4,6 @@ import json
 import os
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 
 PREFIX = "[seerr-init]"
@@ -142,18 +141,24 @@ def configure_jellyfin(api_headers):
     )
 
     log("Syncing and enabling Jellyfin libraries...")
+    request(
+        "POST",
+        "/api/v1/settings/jellyfin/library/sync",
+        headers=api_headers,
+        expected=(200,),
+    )
     libraries = request(
         "GET",
-        "/api/v1/settings/jellyfin/library?sync=true",
+        "/api/v1/settings/jellyfin/library",
         headers=api_headers,
         expected=(200,),
     )
     library_ids = [lib.get("id") for lib in libraries if lib.get("id")]
-    if library_ids:
-        enable_query = urllib.parse.quote(",".join(library_ids), safe="")
+    for library_id in library_ids:
         request(
-            "GET",
-            f"/api/v1/settings/jellyfin/library?enable={enable_query}",
+            "PUT",
+            f"/api/v1/settings/jellyfin/library/{library_id}",
+            payload={"enabled": True},
             headers=api_headers,
             expected=(200,),
         )
