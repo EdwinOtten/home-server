@@ -210,14 +210,23 @@ def select_profile(profiles, preferred_name):
     return (profiles or [{}])[0]
 
 
+def select_root_folder(root_folders, default_path):
+    if root_folders:
+        return root_folders[0]
+    return {"path": default_path}
+
+
 def desired_radarr_payload(test_data):
     profiles = test_data.get("profiles") or []
     root_folders = test_data.get("rootFolders") or []
     preferred_profile = os.environ.get("SEERR_RADARR_QUALITY_PROFILE", "HD-1080p")
     profile = select_profile(profiles, preferred_profile)
-    root = root_folders[0] if root_folders else {}
-    if not profile.get("id") or not root.get("path"):
-        raise RuntimeError("Unable to determine Radarr profile/root folder from test endpoint.")
+    root = select_root_folder(
+        root_folders,
+        os.environ.get("SEERR_RADARR_ROOT_FOLDER", "/media/movies"),
+    )
+    if not profile.get("id"):
+        raise RuntimeError("Unable to determine Radarr quality profile from test endpoint.")
 
     return {
         "name": "Radarr",
@@ -246,10 +255,13 @@ def desired_sonarr_payload(test_data):
     language_profiles = test_data.get("languageProfiles") or []
     preferred_profile = os.environ.get("SEERR_SONARR_QUALITY_PROFILE", "HD-1080p")
     profile = select_profile(profiles, preferred_profile)
-    root = root_folders[0] if root_folders else {}
+    root = select_root_folder(
+        root_folders,
+        os.environ.get("SEERR_SONARR_ROOT_FOLDER", "/media/series"),
+    )
     language_id = language_profiles[0]["id"] if language_profiles else None
-    if not profile.get("id") or not root.get("path"):
-        raise RuntimeError("Unable to determine Sonarr profile/root folder from test endpoint.")
+    if not profile.get("id"):
+        raise RuntimeError("Unable to determine Sonarr quality profile from test endpoint.")
 
     payload = {
         "name": "Sonarr",
