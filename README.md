@@ -61,7 +61,7 @@ Once NFS is running, you can test the deployment your changes without pushing to
 
 ```bash
 # Create temporary location for local deployment
-rm -r /tmp/home-server-data
+rm -rf /tmp/home-server-data
 mkdir -p /tmp/home-server-data
 
 # Ensure NFS server is running (see Quick Start above)
@@ -70,6 +70,7 @@ export NFS_SERVER_ADDR=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{
 # Run doco-cd in one-shot mode pointing to local repo
 REPO_DIR=$PWD REPO_REF=$(git branch --show-current) NFS_SERVER_ADDR="$NFS_SERVER_ADDR" LOCAL_VOLUME_LOCATION=/tmp/home-server-data RUN_ONCE=true docker compose up -d
 ```
+
 
 ### Cleanup
 
