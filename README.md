@@ -20,6 +20,14 @@ Before you can start developing, you need to have the following tools installed:
 3. [Install sops](https://github.com/getsops/sops/releases)
 4. Install docker if you haven't
 
+### Docker registry authentication
+
+If Docker Hub asks for authentication, human users can log in with their
+Docker Hub username and personal access token before pulling images. The
+repository's Copilot instructions contain the non-interactive login procedure
+for the cloud-agent environment. Images hosted on GHCR or LSCR use separate
+credentials when those registries require authentication.
+
 
 ## Local Testing
 
