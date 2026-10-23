@@ -31,7 +31,11 @@ services:
       chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache"
     restart: on-failure
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "test -d /mnt/media-server-remote-root/media && test -d /mnt/media-server-local-root/services"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # qBitorrent is used to download torrents
 #  qbittorrent:
@@ -485,10 +489,14 @@ services:
       - SEERR_SONARR_EXTERNAL_URL=${SEERR_SONARR_EXTERNAL_URL:-http://sonarr:8989}
     volumes:
       - ./seerr:/opt/seerr:ro
-    command: ["sh", "-c", "python3 /opt/seerr/init-config.py && tail -f /dev/null"]
+    command: ["sh", "-c", "python3 /opt/seerr/init-config.py && touch /tmp/seerr-init-complete && tail -f /dev/null"]
     restart: on-failure
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "test -f /tmp/seerr-init-complete"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - media-server-network
     depends_on:
