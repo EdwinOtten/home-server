@@ -24,6 +24,27 @@ fi
 
 Never print or disclose `SOPS_AGE_KEY`. Verify only that `sops_age_key.txt` exists and has mode `600`.
 
+## Docker registry authentication
+
+`DOCKER_PAT` is a read-only personal access token supplied to the cloud-agent
+environment. Before any Docker command that can fetch an image, authenticate
+all registries referenced by the Compose files:
+
+```bash
+: "${DOCKER_PAT:?DOCKER_PAT must be set}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+for registry in docker.io ghcr.io lscr.io; do
+  printf '%s' "$DOCKER_PAT" |
+    docker login "$registry" --username "$DOCKER_USERNAME" --password-stdin
+done
+```
+
+Use the Docker/GitHub account associated with the token by setting
+`DOCKER_USERNAME` when the default is not correct. Never print the token or
+pass it as a command-line argument. This login must happen before the
+baseline deployment, redeployment, cleanup commands that may pull images, or
+any standalone `docker run`/`docker compose` command.
+
 ## Required development workflow
 
 1. Read and follow the local testing and cleanup procedures in `README.md`.
@@ -32,7 +53,8 @@ Never print or disclose `SOPS_AGE_KEY`. Verify only that `sops_age_key.txt` exis
    `git rev-parse --is-shallow-repository` returns `true`, run
    `git fetch --unshallow` so Doco-CD can resolve the complete local Git
    source.
-2. Before editing, run the documented local deployment and verify the baseline:
+2. Authenticate Docker registries as described above, then run the documented
+   local deployment and verify the baseline:
    - `docker logs --since 5m home-server` shows no deployment errors.
    - `docker ps` shows expected containers running.
    - Every container with a healthcheck is `healthy`; containers intended to exit have exit code `0`.

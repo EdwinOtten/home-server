@@ -20,6 +20,26 @@ Before you can start developing, you need to have the following tools installed:
 3. [Install sops](https://github.com/getsops/sops/releases)
 4. Install docker if you haven't
 
+### Docker registry authentication
+
+`DOCKER_PAT` must be available in the environment before running any Docker
+command that may fetch an image. Log in to each registry used by this
+repository; `--password-stdin` prevents the token from appearing in shell
+history or process arguments:
+
+```bash
+: "${DOCKER_PAT:?DOCKER_PAT must be set}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+for registry in docker.io ghcr.io lscr.io; do
+  printf '%s' "$DOCKER_PAT" |
+    docker login "$registry" --username "$DOCKER_USERNAME" --password-stdin
+done
+```
+
+Set `DOCKER_USERNAME` to the Docker/GitHub account associated with the
+personal access token when it is not `EdwinOtten`. Repeat this login after
+switching Docker hosts or clearing Docker's credential store.
+
 
 ## Local Testing
 
@@ -28,6 +48,12 @@ Before you can start developing, you need to have the following tools installed:
 To test locally without pushing to GitHub, you need a real NFS server. Use the `itsthenetwork/nfs-server-alpine` image in Docker:
 
 ```bash
+# Authenticate before fetching the NFS image (see Docker registry authentication above).
+: "${DOCKER_PAT:?DOCKER_PAT must be set}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+printf '%s' "$DOCKER_PAT" |
+  docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
+
 # Create the export paths the stack expects
 rm -r /tmp/nfs-root/volume1/media-server-storage
 mkdir -p /tmp/nfs-root/volume1/media-server-storage
