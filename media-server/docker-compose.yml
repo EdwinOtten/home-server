@@ -28,8 +28,9 @@ services:
       /mnt/media-server-local-root/services/sabnzbd 
       /mnt/media-server-local-root/services/jellyfin/data 
       && chown -R ${PUID}:${PGID} /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache &&
-      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache"
-    restart: on-failure
+      chmod -R u+rwX,go-wx /mnt/media-server-remote-root /mnt/media-server-local-root /mnt/configarr-cache
+      && exec tail -f /dev/null"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "test -d /mnt/media-server-remote-root/media && test -d /mnt/media-server-local-root/services"]
       interval: 10s
@@ -128,7 +129,7 @@ services:
       start_period: 40s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
 
   # Sonarr is used to query, add downloads to the download queue and index TV shows
   # https://sonarr.tv/
@@ -179,7 +180,7 @@ services:
       start_period: 40s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       sabnzbd:
         condition: service_healthy
 
@@ -232,7 +233,7 @@ services:
       start_period: 40s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       sabnzbd:
         condition: service_healthy
 
@@ -274,7 +275,7 @@ services:
       start_period: 10m
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       sonarr:
         condition: service_healthy
       radarr:
@@ -326,7 +327,7 @@ services:
       start_period: 60s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       sonarr:
         condition: service_healthy
       radarr:
@@ -375,7 +376,7 @@ services:
       start_period: 40s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       sonarr:
         condition: service_healthy
       radarr:
@@ -428,7 +429,7 @@ services:
       start_period: 40s
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
 
   # Seerr allows users to submit content requests, which are forwarded to 
   # Radarr/Sonarr after an optional approval.
@@ -461,7 +462,7 @@ services:
       retries: 3
     depends_on:
       init-folders:
-        condition: service_completed_successfully
+        condition: service_healthy
       jellyfin:
         condition: service_healthy
       sonarr:
