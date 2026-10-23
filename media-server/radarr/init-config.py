@@ -10,16 +10,11 @@
 #   1. Waits for Radarr's API to become ready (the service starts after this script exits).
 #   2. Updates media management settings via /api/v3/config/mediamanagement (idempotent):
 #      - autoRenameFolders: true
-#   3. Updates naming settings via /api/v3/config/naming (idempotent):
-#      - renameMovies: true
-#      - replaceIllegalCharacters: true
-#      - standardMovieFormat: {Movie Title} ({Release Year})
-#      - movieFolderFormat: {Movie Title} ({Release Year})
-#   4. Adds /media/movies as a root folder if it does not already exist.
-#   5. Upserts a SABnzbd download client (idempotent):
+#   3. Adds /media/movies as a root folder if it does not already exist.
+#   4. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
-#   6. Upserts an Emby/Jellyfin notification (idempotent):
+#   5. Upserts an Emby/Jellyfin notification (idempotent):
 #      - Connects to jellyfin:8096
 #      - Enables update library
 #      - Enables: On Download (File Import), On Upgrade, On Rename,
@@ -378,36 +373,6 @@ def configure_media_management(api_key):
         log("WARNING: Could not update media management settings.")
 
 
-def configure_naming(api_key):
-    log("Fetching current naming settings...")
-    try:
-        settings = api_get("/api/v3/config/naming", api_key)
-    except Exception:
-        log("WARNING: Could not fetch naming settings.")
-        return
-
-    desired = {
-        "renameMovies": True,
-        "replaceIllegalCharacters": True,
-        "standardMovieFormat": "{Movie Title} ({Release Year})",
-        "movieFolderFormat": "{Movie Title} ({Release Year})",
-    }
-
-    needs_update = any(settings.get(k) != v for k, v in desired.items())
-    if not needs_update:
-        log("Naming settings already correct, skipping.")
-        return
-
-    settings.update(desired)
-    config_id = settings["id"]
-    log("Updating naming settings...")
-    try:
-        api_put(f"/api/v3/config/naming/{config_id}", settings, api_key)
-        log("Naming settings updated.")
-    except Exception:
-        log("WARNING: Could not update naming settings.")
-
-
 def add_root_folder(api_key):
     root_folder_path = "/media/movies"
     log(f"Checking root folders...")
@@ -452,7 +417,6 @@ def main():
 
     wait_for_radarr(api_key)
     configure_media_management(api_key)
-    configure_naming(api_key)
     add_root_folder(api_key)
     upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)
