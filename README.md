@@ -22,23 +22,22 @@ Before you can start developing, you need to have the following tools installed:
 
 ### Docker registry authentication
 
-`DOCKER_PAT` must be available in the environment before running any Docker
-command that may fetch an image. Log in to each registry used by this
-repository; `--password-stdin` prevents the token from appearing in shell
-history or process arguments:
+`DOCKER_PAT` is a Docker Hub personal access token. Before running any Docker
+command that may fetch an image from Docker Hub, log in with
+`--password-stdin` so the token does not appear in shell history or process
+arguments:
 
 ```bash
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
 DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
-for registry in docker.io ghcr.io lscr.io; do
-  printf '%s' "$DOCKER_PAT" |
-    docker login "$registry" --username "$DOCKER_USERNAME" --password-stdin
-done
+printf '%s' "$DOCKER_PAT" |
+  docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
 ```
 
-Set `DOCKER_USERNAME` to the Docker/GitHub account associated with the
-personal access token when it is not `Edwin0tten`. Repeat this login after
-switching Docker hosts or clearing Docker's credential store.
+Set `DOCKER_USERNAME` to the Docker Hub account associated with the personal
+access token when it is not `Edwin0tten`. Repeat this login after switching
+Docker hosts or clearing Docker's credential store. Images hosted on GHCR or
+LSCR do not use this Docker Hub token.
 
 
 ## Local Testing
@@ -48,7 +47,7 @@ switching Docker hosts or clearing Docker's credential store.
 To test locally without pushing to GitHub, you need a real NFS server. Use the `itsthenetwork/nfs-server-alpine` image in Docker:
 
 ```bash
-# Authenticate before fetching the NFS image (see Docker registry authentication above).
+# Authenticate before fetching the Docker Hub image (see Docker registry authentication above).
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
 DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
 printf '%s' "$DOCKER_PAT" |
@@ -86,7 +85,8 @@ NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose -f nfs-test/docker-compose.yml
 Once NFS is running, you can test the deployment your changes without pushing to GitHub by running:
 
 ```bash
-# Create temporary location for local deployment
+# Create temporary location for local deployment. Compose defaults to this
+# path when LOCAL_VOLUME_LOCATION is not set.
 rm -rf /tmp/home-server-data
 mkdir -p /tmp/home-server-data
 

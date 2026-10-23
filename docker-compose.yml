@@ -28,7 +28,7 @@ services:
       - sops_age_key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${LOCAL_VOLUME_LOCATION:?LOCAL_VOLUME_LOCATION must be set}:/data
+      - ${LOCAL_VOLUME_LOCATION:-/tmp/home-server-data}:/data
       - ${REPO_DIR:-.}:/local_repo:ro
     healthcheck:
       start_period: 15s
