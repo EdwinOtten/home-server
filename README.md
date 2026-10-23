@@ -22,22 +22,11 @@ Before you can start developing, you need to have the following tools installed:
 
 ### Docker registry authentication
 
-`DOCKER_PAT` is a Docker Hub personal access token. Before running any Docker
-command that may fetch an image from Docker Hub, log in with
-`--password-stdin` so the token does not appear in shell history or process
-arguments:
-
-```bash
-: "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
-printf '%s' "$DOCKER_PAT" |
-  docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
-```
-
-Set `DOCKER_USERNAME` to the Docker Hub account associated with the personal
-access token when it is not `Edwin0tten`. Repeat this login after switching
-Docker hosts or clearing Docker's credential store. Images hosted on GHCR or
-LSCR do not use this Docker Hub token.
+If Docker Hub asks for authentication, human users can log in with their
+Docker Hub username and personal access token before pulling images. The
+repository's Copilot instructions contain the non-interactive login procedure
+for the cloud-agent environment. Images hosted on GHCR or LSCR use separate
+credentials when those registries require authentication.
 
 
 ## Local Testing
@@ -47,12 +36,6 @@ LSCR do not use this Docker Hub token.
 To test locally without pushing to GitHub, you need a real NFS server. Use the `itsthenetwork/nfs-server-alpine` image in Docker:
 
 ```bash
-# Authenticate before fetching the Docker Hub image (see Docker registry authentication above).
-: "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
-printf '%s' "$DOCKER_PAT" |
-  docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
-
 # Create the export paths the stack expects
 rm -r /tmp/nfs-root/volume1/media-server-storage
 mkdir -p /tmp/nfs-root/volume1/media-server-storage
@@ -85,8 +68,7 @@ NFS_SERVER_ADDR="$NFS_SERVER_ADDR" docker compose -f nfs-test/docker-compose.yml
 Once NFS is running, you can test the deployment your changes without pushing to GitHub by running:
 
 ```bash
-# Create temporary location for local deployment. Compose defaults to this
-# path when LOCAL_VOLUME_LOCATION is not set.
+# Create temporary location for local deployment
 rm -rf /tmp/home-server-data
 mkdir -p /tmp/home-server-data
 
