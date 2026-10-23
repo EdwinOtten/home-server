@@ -8,21 +8,11 @@
 #
 # It forks a background process that:
 #   1. Waits for Sonarr's API to become ready (the service starts after this script exits).
-#   2. Updates naming settings via /api/v3/config/naming (idempotent):
-#      - renameEpisodes: true
-#      - replaceIllegalCharacters: true
-#      - colonReplacementFormat: 4 (Smart Replace)
-#      - multiEpisodeStyle: 5 (Prefixed Range)
-#      - standardEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
-#      - dailyEpisodeFormat: {Series Title} - {Air-Date} - {Episode Title}
-#      - animeEpisodeFormat: {Series Title} - S{season:00}E{episode:00} - {Episode Title}
-#      - seriesFolderFormat: {Series TitleYear}
-#      - seasonFolderFormat: Season {season}
-#   3. Adds /media/series as a root folder if it does not already exist.
-#   4. Upserts a SABnzbd download client (idempotent):
+#   2. Adds /media/series as a root folder if it does not already exist.
+#   3. Upserts a SABnzbd download client (idempotent):
 #      - Creates the client if it does not exist
 #      - Updates host, port and apiKey if they changed
-#   5. Upserts an Emby/Jellyfin notification (idempotent):
+#   4. Upserts an Emby/Jellyfin notification (idempotent):
 #      - Connects to jellyfin:8096
 #      - Enables update library
 #      - Enables: On Import Complete, On Upgrade, On Rename, On Series Delete,
@@ -355,41 +345,6 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         log("WARNING: Could not update Jellyfin notification.")
 
 
-def configure_naming(api_key):
-    log("Fetching current naming settings...")
-    try:
-        settings = api_get("/api/v3/config/naming", api_key)
-    except Exception:
-        log("WARNING: Could not fetch naming settings.")
-        return
-
-    desired = {
-        "renameEpisodes": True,
-        "replaceIllegalCharacters": True,
-        "colonReplacementFormat": 4,
-        "multiEpisodeStyle": 5,
-        "standardEpisodeFormat": "{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
-        "dailyEpisodeFormat": "{Series Title} - {Air-Date} - {Episode Title}",
-        "animeEpisodeFormat": "{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
-        "seriesFolderFormat": "{Series TitleYear}",
-        "seasonFolderFormat": "Season {season}",
-    }
-
-    needs_update = any(settings.get(k) != v for k, v in desired.items())
-    if not needs_update:
-        log("Naming settings already correct, skipping.")
-        return
-
-    settings.update(desired)
-    config_id = settings["id"]
-    log("Updating naming settings...")
-    try:
-        api_put(f"/api/v3/config/naming/{config_id}", settings, api_key)
-        log("Naming settings updated.")
-    except Exception:
-        log("WARNING: Could not update naming settings.")
-
-
 def add_root_folder(api_key):
     root_folder_path = "/media/series"
     log("Checking root folders...")
@@ -433,7 +388,6 @@ def main():
     jellyfin_port = os.environ.get("JELLYFIN_PORT", "8096")
 
     wait_for_sonarr(api_key)
-    configure_naming(api_key)
     add_root_folder(api_key)
     upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)

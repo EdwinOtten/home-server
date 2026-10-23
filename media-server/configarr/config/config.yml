@@ -12,6 +12,18 @@ sonarr:
     api_key: !env SONARR_API_KEY
     quality_definition:
       type: series
+    media_naming:
+      series: default
+      season: default
+      episodes:
+        rename: true
+        standard: default
+        daily: default
+        anime: default
+    media_naming_api:
+      replaceIllegalCharacters: true
+      colonReplacementFormat: 4
+      multiEpisodeStyle: 5
     delete_unmanaged_custom_formats:
       enabled: true
     delete_old_custom_formats: true
@@ -92,6 +104,13 @@ radarr:
     api_key: !env RADARR_API_KEY
     quality_definition:
       type: movie
+    media_naming:
+      folder: default
+      movie:
+        rename: true
+        standard: default
+    media_naming_api:
+      replaceIllegalCharacters: true
     delete_unmanaged_custom_formats:
       enabled: true
     delete_old_custom_formats: true
