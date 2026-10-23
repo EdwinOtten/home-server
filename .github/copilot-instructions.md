@@ -32,7 +32,7 @@ all registries referenced by the Compose files:
 
 ```bash
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
 for registry in docker.io ghcr.io lscr.io; do
   printf '%s' "$DOCKER_PAT" |
     docker login "$registry" --username "$DOCKER_USERNAME" --password-stdin

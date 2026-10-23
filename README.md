@@ -29,7 +29,7 @@ history or process arguments:
 
 ```bash
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
 for registry in docker.io ghcr.io lscr.io; do
   printf '%s' "$DOCKER_PAT" |
     docker login "$registry" --username "$DOCKER_USERNAME" --password-stdin
@@ -37,7 +37,7 @@ done
 ```
 
 Set `DOCKER_USERNAME` to the Docker/GitHub account associated with the
-personal access token when it is not `EdwinOtten`. Repeat this login after
+personal access token when it is not `Edwin0tten`. Repeat this login after
 switching Docker hosts or clearing Docker's credential store.
 
 
@@ -50,7 +50,7 @@ To test locally without pushing to GitHub, you need a real NFS server. Use the `
 ```bash
 # Authenticate before fetching the NFS image (see Docker registry authentication above).
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-EdwinOtten}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
 printf '%s' "$DOCKER_PAT" |
   docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
 
