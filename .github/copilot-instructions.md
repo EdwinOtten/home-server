@@ -32,7 +32,7 @@ from Docker Hub, authenticate Docker Hub:
 
 ```bash
 : "${DOCKER_PAT:?DOCKER_PAT must be set}"
-DOCKER_USERNAME="${DOCKER_USERNAME:-Edwin0tten}"
+DOCKER_USERNAME="${DOCKER_USERNAME:-edwin0tten}"
 printf '%s' "$DOCKER_PAT" |
   docker login docker.io --username "$DOCKER_USERNAME" --password-stdin
 ```
