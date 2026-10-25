@@ -5,13 +5,13 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
+      - monitoring-state:/data
     ports:
       - 9443:9443
 
 volumes:
-  portainer_data:
-    name: portainer_data
+  monitoring-state:
+    name: monitoring-state
 
 networks:
   default:
