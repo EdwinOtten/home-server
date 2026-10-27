@@ -22,11 +22,10 @@ services:
       /mnt/media-server-state/services/radarr
       /mnt/media-server-state/services/configarr
       /mnt/media-server-state/services/prowlarr
-      /mnt/media-server-state/services/bazarr
+      /mnt/media-server-state/services/bazarr/config/config
       /mnt/media-server-state/services/seerr
       /mnt/media-server-state/services/sabnzbd
       /mnt/media-server-state/services/jellyfin
-      /mnt/media-server-state/cache/configarr
       && chown -R ${PUID}:${PGID} /mnt/media-server-media /mnt/media-server-state &&
       chmod -R u+rwX,go-wx /mnt/media-server-media /mnt/media-server-state
       && exec tail -f /dev/null"
@@ -251,10 +250,7 @@ services:
       - STOP_ON_ERROR=true
     volumes:
       - type: volume
-        source: media-server-state
         target: /app/repos
-        volume:
-          subpath: cache/configarr
       - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
       - ./configarr/templates:/app/templates # Optional if custom templates
       - ./configarr/custom-formats:/app/cfs # Optional if custom formats locally provided

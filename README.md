@@ -36,8 +36,10 @@ credentials when those registries require authentication.
 Each workload has separate persistent volumes. The media-server workload uses
 `media-server-media`, an NFS volume containing only media libraries and
 completed downloads, and `media-server-state`, a local volume containing
-service configuration, databases, caches, and incomplete downloads. Services
-access these volumes through subpaths.
+service configuration, databases, and incomplete downloads. Services access
+these volumes through subpaths. Disposable application caches, such as
+Configarr's repository cache at `/app/repos`, use ephemeral container storage
+and are recreated when the container is recreated.
 
 The monitoring workload uses the separate local `monitoring-state` volume for
 Portainer data. If Tailscale is enabled in the future, it must use a dedicated
