@@ -258,6 +258,7 @@ services:
       sh -c "rm -f /tmp/configarr-sync-complete
       && apk add --no-cache ca-certificates su-exec
       && update-ca-certificates
+      && chown -R ${PUID?:error}:${PGID?:error} /app/repos
       && su-exec ${PUID?:error}:${PGID?:error} dumb-init node index.js
       && touch /tmp/configarr-sync-complete
       && exec tail -f /dev/null"
