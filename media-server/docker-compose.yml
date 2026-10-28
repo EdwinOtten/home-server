@@ -249,7 +249,7 @@ services:
       - SONARR_API_KEY=${SONARR_API_KEY:?error}
       - STOP_ON_ERROR=true
     volumes:
-      - type: volume
+      - type: tmpfs
         target: /app/repos
       - ./configarr/config:/app/config # Contains the config.yml and secrets.yml
       - ./configarr/templates:/app/templates # Optional if custom templates
