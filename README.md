@@ -38,7 +38,7 @@ Each workload has separate persistent volumes. The media-server workload uses
 completed downloads, and `media-server-state`, a local volume containing
 service configuration, databases, and incomplete downloads. Services access
 these volumes through subpaths. Disposable application caches, such as
-Configarr's repository cache at `/app/repos`, use ephemeral container storage
+Configarr's repository cache at `/app/repos`, use a tmpfs volume
 and are recreated when the container is recreated.
 
 The monitoring workload uses the separate local `monitoring-state` volume for
