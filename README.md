@@ -51,8 +51,8 @@ To test locally without pushing to GitHub, you need a real NFS server. Use the `
 
 ```bash
 # Create the export paths the stack expects
-rm -r /tmp/nfs-root/volume1/media-server-storage
-mkdir -p /tmp/nfs-root/volume1/media-server-storage
+rm -r /tmp/nfs-root/volume1/home-server-storage
+mkdir -p /tmp/nfs-root/volume1/home-server-storage
 
 # Remove NFS server if already running
 docker ps -a | grep nfs-server && docker stop nfs-server && docker rm nfs-server
@@ -109,7 +109,7 @@ To cleanup the NFS server as well:
 # Stop and remove the local NFS server
 docker stop nfs-server
 docker rm nfs-server
-rm -r /tmp/nfs-root/volume1/media-server-storage
+rm -r /tmp/nfs-root/volume1/home-server-storage
 ```
 
 
