@@ -31,6 +31,20 @@ credentials when those registries require authentication.
 
 ## Local Testing
 
+### Workload volumes
+
+Each workload has separate persistent volumes. The media-server workload uses
+`media-server-media`, an NFS volume containing only media libraries and
+completed downloads, and `media-server-state`, a local volume containing
+service configuration, databases, and incomplete downloads. Services access
+these volumes through subpaths. Disposable application caches, such as
+Configarr's repository cache at `/app/repos`, use a tmpfs volume
+and are recreated when the container is recreated.
+
+The monitoring workload uses the separate local `monitoring-state` volume for
+Portainer data. If Tailscale is enabled in the future, it must use a dedicated
+Tailscale volume rather than sharing either workload's volumes.
+
 ### Prerequisite: setup local NFS server
 
 To test locally without pushing to GitHub, you need a real NFS server. Use the `itsthenetwork/nfs-server-alpine` image in Docker:
