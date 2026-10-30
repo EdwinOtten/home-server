@@ -10,28 +10,35 @@ services:
     volumes:
       - media-server-media:/mnt/media-server-media
       - media-server-state:/mnt/media-server-state
-    # This command creates all subdirectories at once and sets correct ownership
-    command: >
-      sh -c "mkdir -p /mnt/media-server-media/media/movies
-      /mnt/media-server-media/media/series
-      /mnt/media-server-media/media/downloads/usenet/complete
-      /mnt/media-server-media/media/downloads/torrent/complete
-      /mnt/media-server-state/downloads/usenet/incomplete
-      /mnt/media-server-state/downloads/torrent/incomplete
-      /mnt/media-server-state/services/sonarr
-      /mnt/media-server-state/services/radarr
-      /mnt/media-server-state/services/configarr
-      /mnt/media-server-state/services/prowlarr
-      /mnt/media-server-state/services/bazarr/config/config
-      /mnt/media-server-state/services/seerr
-      /mnt/media-server-state/services/sabnzbd
-      /mnt/media-server-state/services/jellyfin
-      && chown -R ${PUID}:${PGID} /mnt/media-server-media /mnt/media-server-state &&
-      chmod -R u+rwX,go-wx /mnt/media-server-media /mnt/media-server-state
-      && exec tail -f /dev/null"
+      - media-server-incomplete-downloads:/mnt/media-server-incomplete-downloads
+      - ./migrate-incomplete-downloads.sh:/usr/local/bin/migrate-incomplete-downloads.sh:ro
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p \
+          /mnt/media-server-media/media/movies \
+          /mnt/media-server-media/media/series \
+          /mnt/media-server-media/media/downloads/usenet/complete \
+          /mnt/media-server-media/media/downloads/torrent/complete \
+          /mnt/media-server-incomplete-downloads/usenet \
+          /mnt/media-server-incomplete-downloads/torrent \
+          /mnt/media-server-state/services/sonarr \
+          /mnt/media-server-state/services/radarr \
+          /mnt/media-server-state/services/configarr \
+          /mnt/media-server-state/services/prowlarr \
+          /mnt/media-server-state/services/bazarr/config/config \
+          /mnt/media-server-state/services/seerr \
+          /mnt/media-server-state/services/sabnzbd \
+          /mnt/media-server-state/services/jellyfin
+        /bin/sh /usr/local/bin/migrate-incomplete-downloads.sh /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        chown -R ${PUID}:${PGID} /mnt/media-server-media /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        chmod -R u+rwX,go-wx /mnt/media-server-media /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        exec tail -f /dev/null
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "test -d /mnt/media-server-media/media && test -d /mnt/media-server-state/services"]
+      test: ["CMD-SHELL", "test -d /mnt/media-server-media/media && test -d /mnt/media-server-state/services && test -d /mnt/media-server-incomplete-downloads/usenet && test -d /mnt/media-server-incomplete-downloads/torrent"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -53,10 +60,10 @@ services:
 #        volume:
 #          subpath: media/downloads/torrent/complete
 #      - type: volume
-#        source: media-server-state
+#        source: media-server-incomplete-downloads
 #        target: /media/downloads/torrent/incomplete
 #        volume:
-#          subpath: media/downloads/torrent/incomplete
+#          subpath: torrent
 #      - type: volume
 #        source: media-server-state
 #        target: /config
@@ -101,10 +108,10 @@ services:
         volume:
           subpath: media/downloads/usenet/complete
       - type: volume
-        source: media-server-state
+        source: media-server-incomplete-downloads
         target: /incomplete
         volume:
-          subpath: downloads/usenet/incomplete
+          subpath: usenet
       - type: volume
         source: media-server-state
         target: /config
@@ -263,9 +270,9 @@ services:
       && touch /tmp/configarr-sync-complete
       && exec tail -f /dev/null"
     # Configarr is a one-shot synchronizer. Keep the successful container
-    # running so Doco-CD considers the deployment healthy; reconciliation
-    # recreates it when this stack changes.
-    restart: "no"
+    # running so Doco-CD considers the deployment healthy; retry failures
+    # because scheduled-job recovery starts services without their dependencies.
+    restart: on-failure
     networks:
       - media-server-network
     healthcheck:
@@ -511,6 +518,39 @@ services:
       radarr:
         condition: service_healthy
 
+  state-backup:
+    image: debian:bookworm-slim
+    environment:
+      - TZ=Europe/Amsterdam
+    volumes:
+      - type: volume
+        source: media-server-state
+        target: /state
+        read_only: true
+      - type: volume
+        source: media-server-state-backups
+        target: /backups
+      - ./backup-state.sh:/usr/local/bin/backup-state.sh:ro
+    # Doco-CD has no job runtime timeout. Keep the backup under 55 minutes so
+    # stopping and restoring services have the remaining outage budget.
+    # Uninterruptible NFS/Docker/Doco-CD failures can still exceed that target.
+    command:
+      - timeout
+      - --signal=TERM
+      - --kill-after=1m
+      - 55m
+      - /bin/sh
+      - /usr/local/bin/backup-state.sh
+    restart: "no"
+    labels:
+      cd.doco.job.enabled: "true"
+      cd.doco.job.schedule: "0 2 * * 1"
+      cd.doco.job.execution_mode: "one_off"
+      cd.doco.job.skip_running: "true"
+      cd.doco.job.notify_on: "none"
+      cd.doco.job.stop_services: "init-folders,sabnzbd,sonarr,radarr,configarr,prowlarr,bazarr,jellyfin,seerr,seerr-init"
+      cd.doco.job.stop_services.timeout: "30"
+
 networks:
   media-server-network:
     driver: bridge
@@ -529,5 +569,7 @@ volumes:
       type: nfs
       o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
       device: ":/volume1/home-server-storage/media-server-state-backups"
+
+  media-server-incomplete-downloads:
 
   media-server-state:
