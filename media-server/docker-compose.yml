@@ -263,9 +263,9 @@ services:
       && touch /tmp/configarr-sync-complete
       && exec tail -f /dev/null"
     # Configarr is a one-shot synchronizer. Keep the successful container
-    # running so Doco-CD considers the deployment healthy; reconciliation
-    # recreates it when this stack changes.
-    restart: "no"
+    # running so Doco-CD considers the deployment healthy; retry failures
+    # because scheduled-job recovery starts services without their dependencies.
+    restart: on-failure
     networks:
       - media-server-network
     healthcheck:
@@ -510,6 +510,39 @@ services:
         condition: service_healthy
       radarr:
         condition: service_healthy
+
+  state-backup:
+    image: debian:bookworm-slim
+    environment:
+      - TZ=Europe/Amsterdam
+    volumes:
+      - type: volume
+        source: media-server-state
+        target: /state
+        read_only: true
+      - type: volume
+        source: media-server-state-backups
+        target: /backups
+      - ./backup-state.sh:/usr/local/bin/backup-state.sh:ro
+    # Doco-CD has no job runtime timeout. Keep the backup under 55 minutes so
+    # stopping and restoring services have the remaining outage budget.
+    # Uninterruptible NFS/Docker/Doco-CD failures can still exceed that target.
+    command:
+      - timeout
+      - --signal=TERM
+      - --kill-after=1m
+      - 55m
+      - /bin/sh
+      - /usr/local/bin/backup-state.sh
+    restart: "no"
+    labels:
+      cd.doco.job.enabled: "true"
+      cd.doco.job.schedule: "0 2 * * 1"
+      cd.doco.job.execution_mode: "one_off"
+      cd.doco.job.skip_running: "true"
+      cd.doco.job.notify_on: "none"
+      cd.doco.job.stop_services: "init-folders,sabnzbd,sonarr,radarr,configarr,prowlarr,bazarr,jellyfin,seerr,seerr-init"
+      cd.doco.job.stop_services.timeout: "30"
 
 networks:
   media-server-network:
