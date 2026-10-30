@@ -10,28 +10,35 @@ services:
     volumes:
       - media-server-media:/mnt/media-server-media
       - media-server-state:/mnt/media-server-state
-    # This command creates all subdirectories at once and sets correct ownership
-    command: >
-      sh -c "mkdir -p /mnt/media-server-media/media/movies
-      /mnt/media-server-media/media/series
-      /mnt/media-server-media/media/downloads/usenet/complete
-      /mnt/media-server-media/media/downloads/torrent/complete
-      /mnt/media-server-state/downloads/usenet/incomplete
-      /mnt/media-server-state/downloads/torrent/incomplete
-      /mnt/media-server-state/services/sonarr
-      /mnt/media-server-state/services/radarr
-      /mnt/media-server-state/services/configarr
-      /mnt/media-server-state/services/prowlarr
-      /mnt/media-server-state/services/bazarr/config/config
-      /mnt/media-server-state/services/seerr
-      /mnt/media-server-state/services/sabnzbd
-      /mnt/media-server-state/services/jellyfin
-      && chown -R ${PUID}:${PGID} /mnt/media-server-media /mnt/media-server-state &&
-      chmod -R u+rwX,go-wx /mnt/media-server-media /mnt/media-server-state
-      && exec tail -f /dev/null"
+      - media-server-incomplete-downloads:/mnt/media-server-incomplete-downloads
+      - ./migrate-incomplete-downloads.sh:/usr/local/bin/migrate-incomplete-downloads.sh:ro
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p \
+          /mnt/media-server-media/media/movies \
+          /mnt/media-server-media/media/series \
+          /mnt/media-server-media/media/downloads/usenet/complete \
+          /mnt/media-server-media/media/downloads/torrent/complete \
+          /mnt/media-server-incomplete-downloads/usenet \
+          /mnt/media-server-incomplete-downloads/torrent \
+          /mnt/media-server-state/services/sonarr \
+          /mnt/media-server-state/services/radarr \
+          /mnt/media-server-state/services/configarr \
+          /mnt/media-server-state/services/prowlarr \
+          /mnt/media-server-state/services/bazarr/config/config \
+          /mnt/media-server-state/services/seerr \
+          /mnt/media-server-state/services/sabnzbd \
+          /mnt/media-server-state/services/jellyfin
+        /bin/sh /usr/local/bin/migrate-incomplete-downloads.sh /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        chown -R ${PUID}:${PGID} /mnt/media-server-media /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        chmod -R u+rwX,go-wx /mnt/media-server-media /mnt/media-server-state /mnt/media-server-incomplete-downloads
+        exec tail -f /dev/null
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "test -d /mnt/media-server-media/media && test -d /mnt/media-server-state/services"]
+      test: ["CMD-SHELL", "test -d /mnt/media-server-media/media && test -d /mnt/media-server-state/services && test -d /mnt/media-server-incomplete-downloads/usenet && test -d /mnt/media-server-incomplete-downloads/torrent"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -53,10 +60,10 @@ services:
 #        volume:
 #          subpath: media/downloads/torrent/complete
 #      - type: volume
-#        source: media-server-state
+#        source: media-server-incomplete-downloads
 #        target: /media/downloads/torrent/incomplete
 #        volume:
-#          subpath: media/downloads/torrent/incomplete
+#          subpath: torrent
 #      - type: volume
 #        source: media-server-state
 #        target: /config
@@ -101,10 +108,10 @@ services:
         volume:
           subpath: media/downloads/usenet/complete
       - type: volume
-        source: media-server-state
+        source: media-server-incomplete-downloads
         target: /incomplete
         volume:
-          subpath: downloads/usenet/incomplete
+          subpath: usenet
       - type: volume
         source: media-server-state
         target: /config
@@ -562,5 +569,7 @@ volumes:
       type: nfs
       o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
       device: ":/volume1/home-server-storage/media-server-state-backups"
+
+  media-server-incomplete-downloads:
 
   media-server-state:

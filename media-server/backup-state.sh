@@ -37,8 +37,6 @@ fi
 
 log "Creating backup archive $final_archive"
 tar --create --gzip --file "$temporary_archive" --preserve-permissions --numeric-owner \
-    --exclude='./downloads/usenet/incomplete' \
-    --exclude='./downloads/torrent/incomplete' \
     --directory "$STATE_DIR" .
 chmod 600 "$temporary_archive"
 
