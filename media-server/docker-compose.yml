@@ -521,6 +521,13 @@ volumes:
     driver_opts:
       type: nfs
       o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
-      device: ":/volume1/media-server-storage"
+      device: ":/volume1/home-server-storage/media-server-media"
+
+  media-server-state-backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER_ADDR:?NFS_SERVER_ADDR must be set},nfsvers=4,rw
+      device: ":/volume1/home-server-storage/media-server-state-backups"
 
   media-server-state:
