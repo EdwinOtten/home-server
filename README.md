@@ -35,17 +35,11 @@ credentials when those registries require authentication.
 
 Each workload has separate persistent volumes. The media-server workload uses
 `media-server-media`, an NFS volume containing only media libraries and
-completed downloads, `media-server-state`, a local volume containing service
-configuration and databases, and `media-server-incomplete-downloads`, a local
-volume containing incomplete downloads. The incomplete-download volume is not
-included in configuration backups. Services access persistent volumes through
-subpaths. Disposable application caches, such as Configarr's repository cache
-at `/app/repos`, use a tmpfs volume and are recreated when the container is
-recreated.
-
-On first startup after this volume change, `init-folders` migrates existing
-incomplete Usenet and torrent files from `media-server-state` into the new
-volume before the download services start.
+completed downloads, and `media-server-state`, a local volume containing
+service configuration, databases, and incomplete downloads. Services access
+these volumes through subpaths. Disposable application caches, such as
+Configarr's repository cache at `/app/repos`, use a tmpfs volume
+and are recreated when the container is recreated.
 
 The monitoring workload uses the separate local `monitoring-state` volume for
 Portainer data. If Tailscale is enabled in the future, it must use a dedicated
