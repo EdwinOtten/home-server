@@ -51,7 +51,9 @@ pull images, or any standalone `docker run`/`docker compose` command.
    usually are not. Before local Doco-CD deployment, if
    `git rev-parse --is-shallow-repository` returns `true`, run
    `git fetch --unshallow` so Doco-CD can resolve the complete local Git
-   source.
+   source. Set `REPO_REF` to the fully qualified local branch ref
+   `refs/heads/$(git branch --show-current)`; an unqualified branch name
+   cannot be resolved by the local Doco-CD mirror.
 2. Authenticate Docker Hub as described above, then run the documented local
    deployment and verify the baseline:
    - `docker logs --since 5m home-server` shows no deployment errors.

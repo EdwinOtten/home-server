@@ -16,7 +16,9 @@
 #   3. Adds two media libraries via the Jellyfin API (if they don't already exist):
 #      - "Movies"  (collectionType=movies)  pointing at /media/movies
 #      - "Series"  (collectionType=tvshows) pointing at /media/series
-#   4. Injects JELLYFIN_API_KEY into the ApiKeys table via the built-in sqlite3 module.
+#   4. Creates or updates regular users from JELLYFIN_REGULAR_USERS and
+#      JELLYFIN_REGULAR_USER_PASSWORDS with the required playback policy.
+#   5. Injects JELLYFIN_API_KEY into the ApiKeys table via the built-in sqlite3 module.
 #      (The Jellyfin API does not allow specifying a pre-determined key value; it always
 #      generates a random one, so the exact key must be written directly to the database.)
 #
@@ -208,6 +210,114 @@ def add_media_libraries():
     log("Media library setup complete.")
 
 
+def regular_users_from_env():
+    usernames = [value.strip() for value in os.environ.get("JELLYFIN_REGULAR_USERS", "").split(",")]
+    passwords = [value.strip() for value in os.environ.get("JELLYFIN_REGULAR_USER_PASSWORDS", "").split(",")]
+
+    if not any(usernames) and not any(passwords):
+        return []
+    if not all(usernames) or not all(passwords):
+        raise ValueError("JELLYFIN_REGULAR_USERS and JELLYFIN_REGULAR_USER_PASSWORDS cannot contain empty values.")
+    if len(usernames) != len(passwords):
+        raise ValueError("JELLYFIN_REGULAR_USERS and JELLYFIN_REGULAR_USER_PASSWORDS must contain the same number of values.")
+
+    return list(zip(usernames, passwords))
+
+
+def api_request(path, auth_header, method="GET", payload=None):
+    data = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Authorization": auth_header}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(f"{JELLYFIN_URL}{path}", data=data, method=method, headers=headers)
+    with urllib.request.urlopen(req) as resp:
+        response_body = resp.read()
+        return json.loads(response_body) if response_body else None
+
+
+def regular_user_policy(policy):
+    policy.update({
+        "IsAdministrator": False,
+        "IsHidden": False,
+        "EnableRemoteAccess": True,
+        "EnableSharedDeviceControl": True,
+        "EnableMediaPlayback": True,
+        "EnableAudioPlaybackTranscoding": True,
+        "EnableVideoPlaybackTranscoding": True,
+        "EnablePlaybackRemuxing": True,
+        "EnableContentDeletion": False,
+        "EnableContentDeletionFromFolders": [],
+        "EnableAllFolders": True,
+    })
+    return policy
+
+
+def provision_regular_users():
+    try:
+        regular_users = regular_users_from_env()
+    except ValueError as exc:
+        log(f"ERROR: {exc}")
+        return
+    if not regular_users:
+        log("No regular Jellyfin users configured, skipping user provisioning.")
+        return
+
+    admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
+    admin_pass = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
+    if not admin_user or not admin_pass:
+        log("JELLYFIN_ADMIN_USER/JELLYFIN_ADMIN_PASSWORD not set, skipping regular user provisioning.")
+        return
+
+    client_auth = (
+        'MediaBrowser Client="init-config", Device="init-config", '
+        'DeviceId="init-config", Version="1.0.0"'
+    )
+    data = json.dumps({"Username": admin_user, "Pw": admin_pass}).encode()
+    req = urllib.request.Request(
+        f"{JELLYFIN_URL}/Users/AuthenticateByName",
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": client_auth},
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            token = json.loads(resp.read()).get("AccessToken")
+    except Exception as exc:
+        log(f"WARNING: Could not authenticate to provision regular users: {exc}")
+        return
+    if not token:
+        log("WARNING: Authentication response did not include an AccessToken; cannot provision regular users.")
+        return
+
+    auth_header = f'MediaBrowser Token="{token}"'
+    try:
+        users = api_request("/Users", auth_header)
+    except Exception as exc:
+        log(f"WARNING: Could not retrieve Jellyfin users: {exc}")
+        return
+    users_by_name = {user["Name"].casefold(): user for user in users}
+
+    for username, password in regular_users:
+        user = users_by_name.get(username.casefold())
+        try:
+            if user is None:
+                log(f"Creating regular user '{username}'.")
+                user = api_request("/Users/New", auth_header, method="POST", payload={"Name": username, "Password": password})
+            else:
+                log(f"Updating regular user '{username}'.")
+                api_request(
+                    f"/Users/Password?{urllib.parse.urlencode({'userId': user['Id']})}",
+                    auth_header,
+                    method="POST",
+                    payload={"NewPw": password, "ResetPassword": False},
+                )
+
+            policy = regular_user_policy(user["Policy"])
+            api_request(f"/Users/{user['Id']}/Policy", auth_header, method="POST", payload=policy)
+        except Exception as exc:
+            log(f"WARNING: Could not provision regular user '{username}': {exc}")
+
+
 def inject_api_key():
     api_key = os.environ.get("JELLYFIN_API_KEY", "")
     if not api_key:
@@ -233,6 +343,7 @@ def main():
     wait_for_jellyfin()
     complete_wizard_if_needed()
     add_media_libraries()
+    provision_regular_users()
     inject_api_key()
 
 
