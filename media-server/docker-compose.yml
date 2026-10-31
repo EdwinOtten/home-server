@@ -537,7 +537,7 @@ services:
     restart: "no"
     labels:
       cd.doco.job.enabled: "true"
-      cd.doco.job.schedule: "0 2 * * 1"
+      cd.doco.job.schedule: "22 22 * * *"
       cd.doco.job.execution_mode: "one_off"
       cd.doco.job.skip_running: "true"
       cd.doco.job.notify_on: "none"
