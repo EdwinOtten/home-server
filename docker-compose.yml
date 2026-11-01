@@ -18,6 +18,7 @@ services:
     environment:
       TZ: Europe/Amsterdam
       GIT_ACCESS_TOKEN: ${GITHUB_READ_TOKEN:-}
+      GIT_AUTH_DOMAINS: ${GIT_AUTH_DOMAINS:-}
       SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key # docker secrets are always mounted to /run/secrets/ if no target is specified
       DOCKER_SWARM_FEATURES: false
       LOG_LEVEL: debug
