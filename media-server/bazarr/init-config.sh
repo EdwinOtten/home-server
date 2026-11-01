@@ -37,6 +37,8 @@ update_section "radarr"  "apikey" "$RADARR_API_KEY"
 update_section "sonarr"  "apikey" "$SONARR_API_KEY"
 update_section "radarr"  "port"   "$RADARR_PORT"
 update_section "sonarr"  "port"   "$SONARR_PORT"
+update_section "radarr"  "ip"   "$RADARR_HOST"
+update_section "sonarr"  "ip"   "$SONARR_HOST"
 
 chown ${PUID:-1000}:${PGID:-1000} "$CONFIG_FILE"
 
