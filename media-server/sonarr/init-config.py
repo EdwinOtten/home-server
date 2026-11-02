@@ -395,7 +395,9 @@ def main():
 
 
 if __name__ == "__main__":
-    if os.fork() == 0:
+    if os.environ.get("INIT_CONFIG_FOREGROUND") == "true":
+        main()
+    elif os.fork() == 0:
         try:
             main()
         except Exception:

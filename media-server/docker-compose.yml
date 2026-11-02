@@ -150,6 +150,7 @@ services:
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
       - JELLYFIN_HOST=jellyfin
       - JELLYFIN_PORT=8096
+      - INIT_CONFIG_FOREGROUND=true
     volumes:
       - type: volume
         source: media-server-media
@@ -161,11 +162,6 @@ services:
         target: /config
         volume:
           subpath: services/sonarr
-      # Mount the init scripts into the LSIO init directory.
-      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
-      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ./sonarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ./sonarr/init-config.py:/opt/sonarr-init-config.py:ro
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -203,6 +199,7 @@ services:
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
       - JELLYFIN_HOST=jellyfin
       - JELLYFIN_PORT=8096
+      - INIT_CONFIG_FOREGROUND=true
     volumes:
       - type: volume
         source: media-server-media
@@ -214,11 +211,6 @@ services:
         target: /config
         volume:
           subpath: services/radarr
-      # Mount the init scripts into the LSIO init directory.
-      # LinuxServer runs custom-cont-init.d scripts via /bin/bash
-      # see https://docs.linuxserver.io/general/container-customization/#custom-scripts
-      - ./radarr/init-config.sh:/custom-cont-init.d/init-config.sh:ro
-      - ./radarr/init-config.py:/opt/init-config.py:ro
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -475,6 +467,62 @@ services:
         condition: service_healthy
       sonarr:
         condition: service_healthy
+      radarr:
+        condition: service_healthy
+
+  # Configure Sonarr through its API after first start so setup is unattended.
+  sonarr-init:
+    image: python:3.12-alpine
+    container_name: sonarr-init
+    environment:
+      - SONARR__AUTH__APIKEY=${SONARR_API_KEY:?error}
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+      - JELLYFIN_HOST=jellyfin
+      - JELLYFIN_PORT=8096
+    volumes:
+      - ./sonarr/init-config.py:/opt/sonarr/init-config.py:ro
+    command: ["sh", "-c", "python3 /opt/sonarr/init-config.py && touch /tmp/sonarr-init-complete && tail -f /dev/null"]
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/sonarr-init-complete"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - media-server-network
+    depends_on:
+      sonarr:
+        condition: service_healthy
+
+  # Configure Radarr through its API after first start so setup is unattended.
+  radarr-init:
+    image: python:3.12-alpine
+    container_name: radarr-init
+    environment:
+      - RADARR__AUTH__APIKEY=${RADARR_API_KEY:?error}
+      - SABNZBD_API_KEY=${SABNZBD_API_KEY:?error}
+      - SABNZBD_HOST=sabnzbd
+      - SABNZBD_PORT=8080
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+      - JELLYFIN_HOST=jellyfin
+      - JELLYFIN_PORT=8096
+    volumes:
+      - ./radarr/init-config.py:/opt/radarr/init-config.py:ro
+    command: ["sh", "-c", "python3 /opt/radarr/init-config.py && touch /tmp/radarr-init-complete && tail -f /dev/null"]
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/radarr-init-complete"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - media-server-network
+    depends_on:
       radarr:
         condition: service_healthy
 
