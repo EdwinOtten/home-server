@@ -213,6 +213,10 @@ def add_media_libraries(auth_header):
     log("Media library setup complete.")
 def configure_library_scan_on_startup(auth_header):
     """Add an application-startup trigger to Jellyfin's library scan task."""
+    if not auth_header:
+        log("No Jellyfin admin authentication available, skipping library scan trigger upon startup.")
+        return
+
     try:
         tasks = api_request("/ScheduledTasks", auth_header)
     except Exception as exc:
@@ -359,8 +363,7 @@ def main():
     complete_wizard_if_needed()
     auth_header = get_admin_auth_header()
     add_media_libraries(auth_header)
-    if auth_header:
-        configure_library_scan_on_startup(auth_header)
+    configure_library_scan_on_startup(auth_header)
     provision_regular_users(auth_header)
     inject_api_key()
 
