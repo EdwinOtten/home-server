@@ -69,5 +69,37 @@ class RegularUsersFromEnvTests(unittest.TestCase):
         )
 
 
+class LibraryScanStartupTriggerTests(unittest.TestCase):
+    def test_adds_startup_trigger_without_removing_existing_triggers(self):
+        tasks = [{
+            "Id": "library-scan",
+            "Key": "RefreshLibrary",
+            "Triggers": [{"Type": "IntervalTrigger", "IntervalTicks": 432000000000}],
+        }]
+
+        with patch.object(MODULE, "api_request", side_effect=[tasks, None]) as request:
+            MODULE.configure_library_scan_on_startup("MediaBrowser Token=\"token\"")
+
+        self.assertEqual(
+            request.call_args_list[1].kwargs["payload"],
+            [
+                {"Type": "IntervalTrigger", "IntervalTicks": 432000000000},
+                {"Type": "StartupTrigger"},
+            ],
+        )
+
+    def test_does_not_update_task_when_startup_trigger_exists(self):
+        tasks = [{
+            "Id": "library-scan",
+            "Name": "Scan Media Library",
+            "Triggers": [{"Type": "StartupTrigger"}],
+        }]
+
+        with patch.object(MODULE, "api_request", return_value=tasks) as request:
+            MODULE.configure_library_scan_on_startup("MediaBrowser Token=\"token\"")
+
+        request.assert_called_once_with("/ScheduledTasks", "MediaBrowser Token=\"token\"")
+
+
 if __name__ == "__main__":
     unittest.main()

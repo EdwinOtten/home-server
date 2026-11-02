@@ -208,6 +208,45 @@ def add_media_libraries():
             log(f"WARNING: Could not add library '{lib['name']}': {exc}")
 
     log("Media library setup complete.")
+    return auth_header
+
+
+def configure_library_scan_on_startup(auth_header):
+    """Add an application-startup trigger to Jellyfin's library scan task."""
+    try:
+        tasks = api_request("/ScheduledTasks", auth_header)
+    except Exception as exc:
+        log(f"WARNING: Could not retrieve scheduled tasks: {exc}")
+        return
+
+    scan_task = next(
+        (
+            task for task in tasks
+            if task.get("Key") == "RefreshLibrary"
+            or task.get("Name", "").casefold() == "scan media library"
+        ),
+        None,
+    )
+    if scan_task is None:
+        log("WARNING: Could not find the Scan Media Library scheduled task.")
+        return
+
+    triggers = scan_task.get("Triggers") or []
+    if any(trigger.get("Type") == "StartupTrigger" for trigger in triggers):
+        log("Library scan already configured to run on application startup.")
+        return
+
+    triggers.append({"Type": "StartupTrigger"})
+    try:
+        api_request(
+            f"/ScheduledTasks/{scan_task['Id']}/Triggers",
+            auth_header,
+            method="POST",
+            payload=triggers,
+        )
+        log("Configured library scan to run on application startup.")
+    except Exception as exc:
+        log(f"WARNING: Could not configure library scan startup trigger: {exc}")
 
 
 def regular_users_from_env():
@@ -342,7 +381,9 @@ def inject_api_key():
 def main():
     wait_for_jellyfin()
     complete_wizard_if_needed()
-    add_media_libraries()
+    auth_header = add_media_libraries()
+    if auth_header:
+        configure_library_scan_on_startup(auth_header)
     provision_regular_users()
     inject_api_key()
 
