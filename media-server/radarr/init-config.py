@@ -28,7 +28,7 @@ import sys
 import time
 import urllib.request
 
-RADARR_URL = "http://localhost:7878"
+RADARR_URL = os.environ.get("RADARR_URL", "http://localhost:7878")
 PREFIX = "[radarr-init]"
 
 

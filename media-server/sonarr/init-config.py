@@ -26,7 +26,7 @@ import sys
 import time
 import urllib.request
 
-SONARR_URL = "http://localhost:8989"
+SONARR_URL = os.environ.get("SONARR_URL", "http://localhost:8989")
 PREFIX = "[sonarr-init]"
 
 
