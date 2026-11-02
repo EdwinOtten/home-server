@@ -10,6 +10,8 @@ import urllib.request
 BAZARR_URL = "http://localhost:6767"
 PREFIX = "[bazarr-init]"
 PROFILE_NAME = "Dutch and English"
+JELLYFIN_MOVIE_LIBRARY = "Movies"
+JELLYFIN_SERIES_LIBRARY = "Series"
 
 
 def log(message):
@@ -108,14 +110,40 @@ def configure_bazarr(api_key):
     log(f"Configured Dutch and English profile {selected_profile_id} for movies and series.")
 
 
+def configure_jellyfin(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port):
+    api_request(
+        "/api/system/settings",
+        api_key,
+        {
+            "settings-general-use_jellyfin": "true",
+            "settings-jellyfin-url": f"http://{jellyfin_host}:{jellyfin_port}",
+            "settings-jellyfin-apikey": jellyfin_api_key,
+            "settings-jellyfin-refresh_method": "immediate",
+            "settings-jellyfin-movie_library": [JELLYFIN_MOVIE_LIBRARY],
+            "settings-jellyfin-series_library": [JELLYFIN_SERIES_LIBRARY],
+            "settings-jellyfin-update_movie_library": "true",
+            "settings-jellyfin-update_series_library": "true",
+        },
+    )
+    log("Configured Jellyfin integration for Movies and Series.")
+
+
 def main():
     api_key = os.environ.get("BAZARR_API_KEY", "")
     if not api_key:
         log("ERROR: BAZARR_API_KEY is not set. Aborting.")
         sys.exit(1)
 
+    jellyfin_api_key = os.environ.get("JELLYFIN_API_KEY", "")
+    if not jellyfin_api_key:
+        log("ERROR: JELLYFIN_API_KEY is not set. Aborting.")
+        sys.exit(1)
+    jellyfin_host = os.environ.get("JELLYFIN_HOST", "jellyfin")
+    jellyfin_port = os.environ.get("JELLYFIN_PORT", "8096")
+
     wait_for_bazarr(api_key)
     configure_bazarr(api_key)
+    configure_jellyfin(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)
     log("Init complete.")
 
 

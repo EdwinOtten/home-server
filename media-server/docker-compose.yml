@@ -351,6 +351,9 @@ services:
       - RADARR_PORT=7878
       - SONARR_HOST=sonarr
       - RADARR_HOST=radarr
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY:?error}
+      - JELLYFIN_HOST=jellyfin
+      - JELLYFIN_PORT=8096
     volumes:
       - type: volume
         source: media-server-media
