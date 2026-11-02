@@ -50,6 +50,33 @@ class JellyfinConfigurationTests(unittest.TestCase):
             ),
         )
 
+    @patch.object(MODULE.time, "sleep")
+    @patch.object(MODULE, "api_request")
+    def test_retries_until_libraries_available(self, api_request, sleep):
+        api_request.side_effect = [
+            Exception("not ready"),
+            {"data": []},
+            {"data": [
+                {"id": "m", "name": "Movies", "type": "movies"},
+                {"id": "s", "name": "Series", "type": "tvshows"},
+            ]},
+            None,
+        ]
+
+        MODULE.configure_jellyfin("bazarr-key", "jellyfin-key", "jellyfin", "8096")
+
+        self.assertEqual(sleep.call_count, 2)
+        sleep.assert_called_with(30)
+
+    @patch.object(MODULE.time, "sleep")
+    @patch.object(MODULE, "api_request", side_effect=Exception("down"))
+    def test_gives_up_after_five_retries(self, api_request, sleep):
+        with self.assertRaises(RuntimeError):
+            MODULE.configure_jellyfin("bazarr-key", "jellyfin-key", "jellyfin", "8096")
+
+        self.assertEqual(api_request.call_count, 6)
+        self.assertEqual(sleep.call_count, 5)
+
 
 if __name__ == "__main__":
     unittest.main()
