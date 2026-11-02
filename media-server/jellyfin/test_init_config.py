@@ -101,5 +101,23 @@ class LibraryScanStartupTriggerTests(unittest.TestCase):
         request.assert_called_once_with("/ScheduledTasks", "MediaBrowser Token=\"token\"")
 
 
+class AdminAuthenticationTests(unittest.TestCase):
+    def test_authentication_header_is_reused_by_setup_functions(self):
+        auth_header = "MediaBrowser Token=\"token\""
+        with patch.object(MODULE, "get_admin_auth_header", return_value=auth_header) as authenticate, \
+             patch.object(MODULE, "add_media_libraries") as add_libraries, \
+             patch.object(MODULE, "configure_library_scan_on_startup") as configure_scan, \
+             patch.object(MODULE, "provision_regular_users") as provision_users, \
+             patch.object(MODULE, "wait_for_jellyfin"), \
+             patch.object(MODULE, "complete_wizard_if_needed"), \
+             patch.object(MODULE, "inject_api_key"):
+            MODULE.main()
+
+        authenticate.assert_called_once_with()
+        add_libraries.assert_called_once_with(auth_header)
+        configure_scan.assert_called_once_with(auth_header)
+        provision_users.assert_called_once_with(auth_header)
+
+
 if __name__ == "__main__":
     unittest.main()
