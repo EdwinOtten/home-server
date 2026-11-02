@@ -8,6 +8,8 @@ import urllib.request
 
 PREFIX = "[seerr-init]"
 SEERR_URL = os.environ.get("SEERR_URL", "http://seerr:5055").rstrip("/")
+REQUEST_PERMISSION = 32
+AUTO_APPROVE_PERMISSION = 128
 
 
 def log(msg):
@@ -344,6 +346,23 @@ def configure_sonarr(api_headers):
     request("POST", "/api/v1/settings/sonarr", payload=payload, headers=api_headers, expected=(201,))
 
 
+def configure_default_permissions(api_headers):
+    settings = request("GET", "/api/v1/settings/main", headers=api_headers, expected=(200,))
+    default_permissions = settings.get("defaultPermissions", 0)
+    desired_permissions = default_permissions | REQUEST_PERMISSION | AUTO_APPROVE_PERMISSION
+    if desired_permissions == default_permissions:
+        return
+
+    log("Enabling non-4K auto-approval for new Seerr users...")
+    request(
+        "POST",
+        "/api/v1/settings/main",
+        payload={"defaultPermissions": desired_permissions},
+        headers=api_headers,
+        expected=(200,),
+    )
+
+
 def initialize_setup(api_headers):
     public = request("GET", "/api/v1/settings/public", headers=api_headers, expected=(200,))
     if public.get("initialized"):
@@ -367,6 +386,7 @@ def main():
     configure_jellyfin(settings_headers)
     configure_radarr(settings_headers)
     configure_sonarr(settings_headers)
+    configure_default_permissions(settings_headers)
     initialize_setup(settings_headers)
     log("Seerr setup automation completed successfully.")
     time.sleep(3)
