@@ -484,7 +484,7 @@ services:
       - INIT_CONFIG_FOREGROUND=true
     volumes:
       - ./sonarr/init-config.py:/opt/sonarr/init-config.py:ro
-    command: ["sh", "-c", "python3 /opt/sonarr/init-config.py; until wget -qO- --header=\"X-Api-Key: $SONARR__AUTH__APIKEY\" http://sonarr:8989/api/v3/notification | grep -q 'Emby / Jellyfin'; do sleep 5; python3 /opt/sonarr/init-config.py; done; touch /tmp/sonarr-init-complete; tail -f /dev/null"]
+    command: ["sh", "-c", "python3 /opt/sonarr/init-config.py; until wget -qO- --header=\"X-Api-Key: $$SONARR__AUTH__APIKEY\" http://sonarr:8989/api/v3/notification | grep -q 'Emby / Jellyfin'; do sleep 5; python3 /opt/sonarr/init-config.py; done; touch /tmp/sonarr-init-complete; tail -f /dev/null"]
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/sonarr-init-complete"]
@@ -514,7 +514,7 @@ services:
       - INIT_CONFIG_FOREGROUND=true
     volumes:
       - ./radarr/init-config.py:/opt/radarr/init-config.py:ro
-    command: ["sh", "-c", "python3 /opt/radarr/init-config.py; until wget -qO- --header=\"X-Api-Key: $RADARR__AUTH__APIKEY\" http://radarr:7878/api/v3/notification | grep -q 'Emby / Jellyfin'; do sleep 5; python3 /opt/radarr/init-config.py; done; touch /tmp/radarr-init-complete; tail -f /dev/null"]
+    command: ["sh", "-c", "python3 /opt/radarr/init-config.py; until wget -qO- --header=\"X-Api-Key: $$RADARR__AUTH__APIKEY\" http://radarr:7878/api/v3/notification | grep -q 'Emby / Jellyfin'; do sleep 5; python3 /opt/radarr/init-config.py; done; touch /tmp/radarr-init-complete; tail -f /dev/null"]
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/radarr-init-complete"]
