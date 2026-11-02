@@ -56,6 +56,33 @@ class JellyfinNotificationTests(unittest.TestCase):
             },
         )
 
+    def test_notification_update_failures_are_propagated(self):
+        for service in ("sonarr", "radarr"):
+            with self.subTest(service=service):
+                module = load_config(service)
+                existing = {
+                    "id": 1,
+                    "implementation": "Emby",
+                    "name": "Emby / Jellyfin",
+                    "fields": [
+                        {"name": "host", "value": "jellyfin"},
+                        {"name": "port", "value": "8096"},
+                        {"name": "apiKey", "value": "old-key"},
+                        {"name": "useSsl", "value": False},
+                        {"name": "updateLibrary", "value": True},
+                    ],
+                    "onGrab": True,
+                }
+                with patch.object(module, "api_get", return_value=[existing]), patch.object(
+                    module, "api_put", side_effect=OSError("API unavailable")
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError, "Could not update Jellyfin notification"
+                    ):
+                        module.upsert_jellyfin_notification(
+                            "arr-key", "new-key", "jellyfin", "8096"
+                        )
+
     def assert_notification_settings(self, module, expected_settings):
         schema = {
             "implementation": "Emby",

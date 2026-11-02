@@ -229,9 +229,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
     log("Checking existing notifications...")
     try:
         notifications = api_get("/api/v3/notification", api_key)
-    except Exception:
-        log("WARNING: Could not fetch notifications.")
-        return
+    except Exception as error:
+        raise RuntimeError("Could not fetch notifications.") from error
 
     existing = None
     for notification in notifications:
@@ -276,9 +275,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         log("Fetching notification schema...")
         try:
             schemas = api_get("/api/v3/notification/schema", api_key)
-        except Exception:
-            log("WARNING: Could not fetch notification schemas.")
-            return
+        except Exception as error:
+            raise RuntimeError("Could not fetch notification schemas.") from error
 
         notification_schema = None
         for schema in schemas:
@@ -294,14 +292,14 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
                 break
 
         if notification_schema is None:
-            log("WARNING: Emby/Jellyfin notification schema not found.")
-            return
+            raise RuntimeError("Emby/Jellyfin notification schema not found.")
 
         fields = notification_schema.get("fields", [])
         for field_name, field_value in desired_fields.items():
             if not set_field_value(fields, field_name, field_value):
-                log(f"WARNING: Notification schema missing expected field '{field_name}'.")
-                return
+                raise RuntimeError(
+                    f"Notification schema missing expected field '{field_name}'."
+                )
         for setting_name, setting_value in desired_settings.items():
             notification_schema[setting_name] = setting_value
 
@@ -309,8 +307,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         try:
             api_post("/api/v3/notification", notification_schema, api_key)
             log("Jellyfin notification added.")
-        except Exception:
-            log("WARNING: Could not add Jellyfin notification.")
+        except Exception as error:
+            raise RuntimeError("Could not add Jellyfin notification.") from error
         return
 
     fields = existing.get("fields", [])
@@ -319,8 +317,9 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         current_value = get_field_value(fields, field_name)
         if not field_value_matches(field_name, current_value, desired_value):
             if not set_field_value(fields, field_name, desired_value):
-                log(f"WARNING: Existing notification missing expected field '{field_name}'.")
-                return
+                raise RuntimeError(
+                    f"Existing notification missing expected field '{field_name}'."
+                )
             needs_update = True
 
     if notification_needs_update(existing, desired_settings):
@@ -334,15 +333,14 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
 
     existing_id = existing.get("id")
     if not existing_id:
-        log("WARNING: Existing Jellyfin notification has no id; cannot update.")
-        return
+        raise RuntimeError("Existing Jellyfin notification has no id; cannot update.")
 
     log("Updating Jellyfin notification...")
     try:
         api_put(f"/api/v3/notification/{existing_id}", existing, api_key)
         log("Jellyfin notification updated.")
-    except Exception:
-        log("WARNING: Could not update Jellyfin notification.")
+    except Exception as error:
+        raise RuntimeError("Could not update Jellyfin notification.") from error
 
 
 def add_root_folder(api_key):
