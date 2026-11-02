@@ -111,16 +111,39 @@ def configure_bazarr(api_key):
 
 
 def configure_jellyfin(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port):
+    jellyfin_url = f"http://{jellyfin_host}:{jellyfin_port}"
+    libraries = []
+    try:
+        response = api_request(
+            f"/api/jellyfin/libraries?{urllib.parse.urlencode({'url': jellyfin_url, 'apikey': jellyfin_api_key})}",
+            api_key,
+        )
+        libraries = (response or {}).get("data", [])
+    except Exception as error:
+        log(f"WARNING: Could not retrieve Jellyfin libraries: {error}")
+
+    movie_library_ids = [
+        library["id"]
+        for library in libraries
+        if library.get("name") == JELLYFIN_MOVIE_LIBRARY and library.get("type") == "movies"
+    ]
+    series_library_ids = [
+        library["id"]
+        for library in libraries
+        if library.get("name") == JELLYFIN_SERIES_LIBRARY and library.get("type") == "tvshows"
+    ]
     api_request(
         "/api/system/settings",
         api_key,
         {
             "settings-general-use_jellyfin": "true",
-            "settings-jellyfin-url": f"http://{jellyfin_host}:{jellyfin_port}",
+            "settings-jellyfin-url": jellyfin_url,
             "settings-jellyfin-apikey": jellyfin_api_key,
             "settings-jellyfin-refresh_method": "immediate",
             "settings-jellyfin-movie_library": [JELLYFIN_MOVIE_LIBRARY],
+            "settings-jellyfin-movie_library_ids": movie_library_ids,
             "settings-jellyfin-series_library": [JELLYFIN_SERIES_LIBRARY],
+            "settings-jellyfin-series_library_ids": series_library_ids,
             "settings-jellyfin-update_movie_library": "true",
             "settings-jellyfin-update_series_library": "true",
         },
