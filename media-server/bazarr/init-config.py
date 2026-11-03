@@ -10,6 +10,10 @@ import urllib.request
 BAZARR_URL = "http://localhost:6767"
 PREFIX = "[bazarr-init]"
 PROFILE_NAME = "Dutch and English"
+JELLYFIN_MOVIE_LIBRARY = "Movies"
+JELLYFIN_SERIES_LIBRARY = "Series"
+JELLYFIN_LIBRARY_ATTEMPTS = 6
+JELLYFIN_RETRY_DELAY = 30
 
 
 def log(message):
@@ -108,14 +112,71 @@ def configure_bazarr(api_key):
     log(f"Configured Dutch and English profile {selected_profile_id} for movies and series.")
 
 
+def configure_jellyfin(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port):
+    jellyfin_url = f"http://{jellyfin_host}:{jellyfin_port}"
+    for attempt in range(1, JELLYFIN_LIBRARY_ATTEMPTS + 1):
+        try:
+            response = api_request(
+                f"/api/jellyfin/libraries?{urllib.parse.urlencode({'url': jellyfin_url, 'apikey': jellyfin_api_key})}",
+                api_key,
+            )
+            libraries = (response or {}).get("data", [])
+            movie_library_ids = [
+                library["id"]
+                for library in libraries
+                if library.get("name") == JELLYFIN_MOVIE_LIBRARY and library.get("type") == "movies"
+            ]
+            series_library_ids = [
+                library["id"]
+                for library in libraries
+                if library.get("name") == JELLYFIN_SERIES_LIBRARY and library.get("type") == "tvshows"
+            ]
+            if movie_library_ids and series_library_ids:
+                break
+            error = "Movies and Series libraries not both available yet"
+        except Exception as exc:
+            error = exc
+        if attempt == JELLYFIN_LIBRARY_ATTEMPTS:
+            raise RuntimeError(
+                f"Could not retrieve Jellyfin libraries after {attempt} attempts: {error}"
+            )
+        log(f"Jellyfin libraries not ready ({error}); retrying in {JELLYFIN_RETRY_DELAY}s ({attempt}/{JELLYFIN_LIBRARY_ATTEMPTS}).")
+        time.sleep(JELLYFIN_RETRY_DELAY)
+    api_request(
+        "/api/system/settings",
+        api_key,
+        {
+            "settings-general-use_jellyfin": "true",
+            "settings-jellyfin-url": jellyfin_url,
+            "settings-jellyfin-apikey": jellyfin_api_key,
+            "settings-jellyfin-refresh_method": "immediate",
+            "settings-jellyfin-movie_library": [JELLYFIN_MOVIE_LIBRARY],
+            "settings-jellyfin-movie_library_ids": movie_library_ids,
+            "settings-jellyfin-series_library": [JELLYFIN_SERIES_LIBRARY],
+            "settings-jellyfin-series_library_ids": series_library_ids,
+            "settings-jellyfin-update_movie_library": "true",
+            "settings-jellyfin-update_series_library": "true",
+        },
+    )
+    log("Configured Jellyfin integration for Movies and Series.")
+
+
 def main():
     api_key = os.environ.get("BAZARR_API_KEY", "")
     if not api_key:
         log("ERROR: BAZARR_API_KEY is not set. Aborting.")
         sys.exit(1)
 
+    jellyfin_api_key = os.environ.get("JELLYFIN_API_KEY", "")
+    if not jellyfin_api_key:
+        log("ERROR: JELLYFIN_API_KEY is not set. Aborting.")
+        sys.exit(1)
+    jellyfin_host = os.environ.get("JELLYFIN_HOST", "jellyfin")
+    jellyfin_port = os.environ.get("JELLYFIN_PORT", "8096")
+
     wait_for_bazarr(api_key)
     configure_bazarr(api_key)
+    configure_jellyfin(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)
     log("Init complete.")
 
 
