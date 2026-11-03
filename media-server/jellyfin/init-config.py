@@ -115,19 +115,14 @@ def complete_wizard_if_needed():
     log("Setup wizard complete.")
 
 
-def add_media_libraries():
-    """Add Movies and Series media libraries if they don't already exist."""
+def get_admin_auth_header():
+    """Authenticate with the configured admin account and return its auth header."""
     admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
     admin_pass = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
     if not admin_user or not admin_pass:
-        log("JELLYFIN_ADMIN_USER/JELLYFIN_ADMIN_PASSWORD not set, skipping media library setup.")
-        return
+        log("JELLYFIN_ADMIN_USER/JELLYFIN_ADMIN_PASSWORD not set, skipping authenticated setup.")
+        return None
 
-    log("Setting up media libraries...")
-
-    # Authenticate with admin credentials to obtain a session token.
-    # The Authorization header is required by Jellyfin even for the login endpoint.
-    # Note: Jellyfin's AuthenticateByName API uses 'Pw' (not 'Password') for the password field.
     client_auth = (
         'MediaBrowser Client="init-config", Device="init-config", '
         'DeviceId="init-config", Version="1.0.0"'
@@ -141,15 +136,23 @@ def add_media_libraries():
     )
     try:
         with urllib.request.urlopen(req) as resp:
-            auth_result = json.loads(resp.read())
+            token = json.loads(resp.read()).get("AccessToken")
     except Exception as exc:
-        log(f"WARNING: Could not authenticate to add media libraries: {exc}")
-        return
-    token = auth_result.get("AccessToken")
+        log(f"WARNING: Could not authenticate with the Jellyfin admin account: {exc}")
+        return None
     if not token:
-        log("WARNING: Authentication response did not include an AccessToken; cannot add media libraries.")
+        log("WARNING: Authentication response did not include an AccessToken.")
+        return None
+    return f'MediaBrowser Token="{token}"'
+
+
+def add_media_libraries(auth_header):
+    """Add Movies and Series media libraries if they don't already exist."""
+    if not auth_header:
+        log("No Jellyfin admin authentication available, skipping media library setup.")
         return
-    auth_header = f'MediaBrowser Token="{token}"'
+
+    log("Setting up media libraries...")
 
     # Fetch the list of existing virtual folders so this step is idempotent.
     req = urllib.request.Request(
@@ -208,6 +211,46 @@ def add_media_libraries():
             log(f"WARNING: Could not add library '{lib['name']}': {exc}")
 
     log("Media library setup complete.")
+def configure_library_scan_on_startup(auth_header):
+    """Add an application-startup trigger to Jellyfin's library scan task."""
+    if not auth_header:
+        log("No Jellyfin admin authentication available, skipping library scan trigger upon startup.")
+        return
+
+    try:
+        tasks = api_request("/ScheduledTasks", auth_header)
+    except Exception as exc:
+        log(f"WARNING: Could not retrieve scheduled tasks: {exc}")
+        return
+
+    scan_task = next(
+        (
+            task for task in tasks
+            if task.get("Key") == "RefreshLibrary"
+            or task.get("Name", "").casefold() == "scan media library"
+        ),
+        None,
+    )
+    if scan_task is None:
+        log("WARNING: Could not find the Scan Media Library scheduled task.")
+        return
+
+    triggers = scan_task.get("Triggers") or []
+    if any(trigger.get("Type") == "StartupTrigger" for trigger in triggers):
+        log("Library scan already configured to run on application startup.")
+        return
+
+    triggers.append({"Type": "StartupTrigger"})
+    try:
+        api_request(
+            f"/ScheduledTasks/{scan_task['Id']}/Triggers",
+            auth_header,
+            method="POST",
+            payload=triggers,
+        )
+        log("Configured library scan to run on application startup.")
+    except Exception as exc:
+        log(f"WARNING: Could not configure library scan startup trigger: {exc}")
 
 
 def regular_users_from_env():
@@ -252,7 +295,7 @@ def regular_user_policy(policy):
     return policy
 
 
-def provision_regular_users():
+def provision_regular_users(auth_header):
     try:
         regular_users = regular_users_from_env()
     except ValueError as exc:
@@ -262,34 +305,10 @@ def provision_regular_users():
         log("No regular Jellyfin users configured, skipping user provisioning.")
         return
 
-    admin_user = os.environ.get("JELLYFIN_ADMIN_USER", "")
-    admin_pass = os.environ.get("JELLYFIN_ADMIN_PASSWORD", "")
-    if not admin_user or not admin_pass:
-        log("JELLYFIN_ADMIN_USER/JELLYFIN_ADMIN_PASSWORD not set, skipping regular user provisioning.")
+    if not auth_header:
+        log("No Jellyfin admin authentication available, skipping regular user provisioning.")
         return
 
-    client_auth = (
-        'MediaBrowser Client="init-config", Device="init-config", '
-        'DeviceId="init-config", Version="1.0.0"'
-    )
-    data = json.dumps({"Username": admin_user, "Pw": admin_pass}).encode()
-    req = urllib.request.Request(
-        f"{JELLYFIN_URL}/Users/AuthenticateByName",
-        data=data,
-        method="POST",
-        headers={"Content-Type": "application/json", "Authorization": client_auth},
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            token = json.loads(resp.read()).get("AccessToken")
-    except Exception as exc:
-        log(f"WARNING: Could not authenticate to provision regular users: {exc}")
-        return
-    if not token:
-        log("WARNING: Authentication response did not include an AccessToken; cannot provision regular users.")
-        return
-
-    auth_header = f'MediaBrowser Token="{token}"'
     try:
         users = api_request("/Users", auth_header)
     except Exception as exc:
@@ -342,8 +361,10 @@ def inject_api_key():
 def main():
     wait_for_jellyfin()
     complete_wizard_if_needed()
-    add_media_libraries()
-    provision_regular_users()
+    auth_header = get_admin_auth_header()
+    add_media_libraries(auth_header)
+    configure_library_scan_on_startup(auth_header)
+    provision_regular_users(auth_header)
     inject_api_key()
 
 
