@@ -240,7 +240,7 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         if (
             implementation in {"emby", "mediabrowser"}
             or sort_name in {"emby", "mediabrowser"}
-            or "emby / jellyfin" in name
+            or "Jellyfin" in name
         ):
             existing = notification
             break
@@ -253,7 +253,7 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         "updateLibrary": True,
     }
     desired_settings = {
-        "name": "Emby / Jellyfin",
+        "name": "Jellyfin",
         "enable": True,
         "onGrab": True,
         "onDownload": True,
@@ -286,7 +286,7 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
             if (
                 implementation in {"emby", "mediabrowser"}
                 or sort_name in {"emby", "mediabrowser"}
-                or "emby / jellyfin" in name
+                or "Jellyfin" in name
             ):
                 notification_schema = schema
                 break
@@ -365,7 +365,7 @@ def add_root_folder(api_key):
         log(f"WARNING: Could not add root folder '{root_folder_path}'.")
 
 
-def main():
+def run_init():
     api_key = os.environ.get("SONARR__AUTH__APIKEY", "")
     if not api_key:
         log("ERROR: SONARR__AUTH__APIKEY is not set. Aborting.")
@@ -390,6 +390,24 @@ def main():
     upsert_sabnzbd_download_client(api_key, sabnzbd_api_key, sabnzbd_host, sabnzbd_port)
     upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jellyfin_port)
     log("Init complete.")
+
+
+def main():
+    max_attempts = int(os.environ.get("INIT_CONFIG_RETRIES", "6"))
+    retry_delay = float(os.environ.get("INIT_CONFIG_RETRY_DELAY", "20"))
+
+    for attempt in range(1, max_attempts + 1):
+        log(f"Running configuration attempt {attempt}/{max_attempts}...")
+        try:
+            run_init()
+            return
+        except Exception as err:
+            log(f"Attempt {attempt}/{max_attempts} failed: {err}")
+            if attempt < max_attempts:
+                time.sleep(retry_delay)
+
+    log(f"ERROR: Configuration failed after {max_attempts} attempts.")
+    sys.exit(1)
 
 
 if __name__ == "__main__":

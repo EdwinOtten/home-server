@@ -63,7 +63,7 @@ class JellyfinNotificationTests(unittest.TestCase):
                 existing = {
                     "id": 1,
                     "implementation": "Emby",
-                    "name": "Emby / Jellyfin",
+                    "name": "Jellyfin",
                     "fields": [
                         {"name": "host", "value": "jellyfin"},
                         {"name": "port", "value": "8096"},
@@ -86,7 +86,7 @@ class JellyfinNotificationTests(unittest.TestCase):
     def assert_notification_settings(self, module, expected_settings):
         schema = {
             "implementation": "Emby",
-            "name": "Emby / Jellyfin",
+            "name": "Jellyfin",
             "fields": [
                 {"name": "host", "value": "jellyfin"},
                 {"name": "port", "value": "8096"},
@@ -103,9 +103,56 @@ class JellyfinNotificationTests(unittest.TestCase):
             )
 
         payload = api_post.call_args.args[1]
-        self.assertEqual(payload["name"], "Emby / Jellyfin")
+        self.assertEqual(payload["name"], "Jellyfin")
         for setting, value in expected_settings.items():
             self.assertEqual(payload[setting], value)
+
+    def test_main_retry_mechanism_retries_and_succeeds(self):
+        for service in ("sonarr", "radarr"):
+            with self.subTest(service=service):
+                module = load_config(service)
+                calls = 0
+
+                def mock_run_init():
+                    nonlocal calls
+                    calls += 1
+                    if calls < 3:
+                        raise RuntimeError(f"Simulated failure on attempt {calls}")
+
+                with patch.object(module, "run_init", side_effect=mock_run_init), patch.dict(
+                    "os.environ", {"INIT_CONFIG_RETRIES": "4", "INIT_CONFIG_RETRY_DELAY": "0"}
+                ), patch("time.sleep") as mock_sleep, patch.object(module, "log") as mock_log:
+                    module.main()
+                    self.assertEqual(calls, 3)
+                    self.assertEqual(mock_sleep.call_count, 2)
+                    logged_messages = [call.args[0] for call in mock_log.call_args_list]
+                    self.assertTrue(
+                        any("attempt 1/4" in msg.lower() for msg in logged_messages)
+                    )
+                    self.assertTrue(
+                        any("attempt 2/4" in msg.lower() for msg in logged_messages)
+                    )
+                    self.assertTrue(
+                        any("attempt 3/4" in msg.lower() for msg in logged_messages)
+                    )
+
+    def test_main_retry_mechanism_fails_when_exhausted(self):
+        for service in ("sonarr", "radarr"):
+            with self.subTest(service=service):
+                module = load_config(service)
+                with patch.object(
+                    module, "run_init", side_effect=RuntimeError("Persistent failure")
+                ), patch.dict(
+                    "os.environ", {"INIT_CONFIG_RETRIES": "3", "INIT_CONFIG_RETRY_DELAY": "0"}
+                ), patch("time.sleep") as mock_sleep, patch.object(module, "log") as mock_log:
+                    with self.assertRaises(SystemExit) as cm:
+                        module.main()
+                    self.assertEqual(cm.exception.code, 1)
+                    self.assertEqual(mock_sleep.call_count, 2)
+                    logged_messages = [call.args[0] for call in mock_log.call_args_list]
+                    self.assertTrue(
+                        any("failed after 3 attempts" in msg.lower() for msg in logged_messages)
+                    )
 
 
 if __name__ == "__main__":

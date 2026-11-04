@@ -484,7 +484,7 @@ services:
       - INIT_CONFIG_FOREGROUND=true
     volumes:
       - ./sonarr/init-config.py:/opt/sonarr/init-config.py:ro
-    command: ["sh", "-c", "for attempt in 1 2 3 4 5 6; do if python3 /opt/sonarr/init-config.py; then touch /tmp/sonarr-init-complete; exec tail -f /dev/null; fi; if [ \"$$attempt\" -lt 6 ]; then sleep 5; fi; done; exit 1"]
+    command: ["sh", "-c", "python3 /opt/sonarr/init-config.py && touch /tmp/sonarr-init-complete && exec tail -f /dev/null"]
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/sonarr-init-complete"]
@@ -514,7 +514,7 @@ services:
       - INIT_CONFIG_FOREGROUND=true
     volumes:
       - ./radarr/init-config.py:/opt/radarr/init-config.py:ro
-    command: ["sh", "-c", "for attempt in 1 2 3 4 5 6; do if python3 /opt/radarr/init-config.py; then touch /tmp/radarr-init-complete; exec tail -f /dev/null; fi; if [ \"$$attempt\" -lt 6 ]; then sleep 5; fi; done; exit 1"]
+    command: ["sh", "-c", "python3 /opt/radarr/init-config.py && touch /tmp/radarr-init-complete && exec tail -f /dev/null"]
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/radarr-init-complete"]
