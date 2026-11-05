@@ -66,6 +66,7 @@ docker run -d \
 -p 111:111/udp \
 -v /tmp/nfs-root:/shared-dir \
 -e SHARED_DIRECTORY=/shared-dir \
+-e SYNC=true \
 itsthenetwork/nfs-server-alpine:latest
 
 # Get the NFS server IP
