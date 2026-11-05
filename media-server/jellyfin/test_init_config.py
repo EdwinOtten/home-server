@@ -1,5 +1,7 @@
 import importlib.util
 import os
+import sqlite3
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -117,6 +119,51 @@ class AdminAuthenticationTests(unittest.TestCase):
         add_libraries.assert_called_once_with(auth_header)
         configure_scan.assert_called_once_with(auth_header)
         provision_users.assert_called_once_with(auth_header)
+
+
+class ApiKeyInjectionTests(unittest.TestCase):
+    def setUp(self):
+        self.db = tempfile.NamedTemporaryFile()
+        self.addCleanup(self.db.close)
+        self.addCleanup(os.unlink, self.db.name)
+        with sqlite3.connect(self.db.name) as con:
+            con.execute(
+                "CREATE TABLE ApiKeys (DateCreated TEXT, DateLastActivity TEXT, "
+                "Name TEXT UNIQUE, AccessToken TEXT UNIQUE)"
+            )
+
+    def test_updates_existing_managed_key(self):
+        with sqlite3.connect(self.db.name) as con:
+            con.execute(
+                "INSERT INTO ApiKeys VALUES ('created', 'last-used', 'docker-managed', 'old-key')"
+            )
+
+        with patch.object(MODULE, "DB_PATH", self.db.name), patch.dict(
+            os.environ, {"JELLYFIN_API_KEY": "configured-key"}
+        ):
+            MODULE.inject_api_key()
+
+        with sqlite3.connect(self.db.name) as con:
+            self.assertEqual(
+                con.execute(
+                    "SELECT Name, AccessToken FROM ApiKeys"
+                ).fetchall(),
+                [("docker-managed", "configured-key")],
+            )
+
+    def test_inserts_managed_key_when_missing(self):
+        with patch.object(MODULE, "DB_PATH", self.db.name), patch.dict(
+            os.environ, {"JELLYFIN_API_KEY": "configured-key"}
+        ):
+            MODULE.inject_api_key()
+
+        with sqlite3.connect(self.db.name) as con:
+            self.assertEqual(
+                con.execute(
+                    "SELECT Name, AccessToken FROM ApiKeys"
+                ).fetchall(),
+                [("docker-managed", "configured-key")],
+            )
 
 
 if __name__ == "__main__":

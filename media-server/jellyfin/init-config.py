@@ -350,11 +350,17 @@ def inject_api_key():
 
     log("Injecting API key...")
     with sqlite3.connect(DB_PATH) as con:
-        con.execute(
-            "INSERT OR IGNORE INTO ApiKeys (DateCreated, DateLastActivity, Name, AccessToken) "
-            "VALUES (datetime('now'), datetime('now'), 'docker-managed', ?)",
+        updated = con.execute(
+            "UPDATE ApiKeys SET DateLastActivity = datetime('now'), AccessToken = ? "
+            "WHERE Name = 'docker-managed'",
             (api_key,),
         )
+        if updated.rowcount == 0:
+            con.execute(
+                "INSERT INTO ApiKeys (DateCreated, DateLastActivity, Name, AccessToken) "
+                "VALUES (datetime('now'), datetime('now'), 'docker-managed', ?)",
+                (api_key,),
+            )
     log("API key injection complete.")
 
 
