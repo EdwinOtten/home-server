@@ -26,7 +26,7 @@ import sys
 import time
 import urllib.request
 
-SONARR_URL = "http://localhost:8989"
+SONARR_URL = os.environ.get("SONARR_URL", "http://localhost:8989")
 PREFIX = "[sonarr-init]"
 
 
@@ -229,9 +229,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
     log("Checking existing notifications...")
     try:
         notifications = api_get("/api/v3/notification", api_key)
-    except Exception:
-        log("WARNING: Could not fetch notifications.")
-        return
+    except Exception as error:
+        raise RuntimeError("Could not fetch notifications.") from error
 
     existing = None
     for notification in notifications:
@@ -241,7 +240,7 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         if (
             implementation in {"emby", "mediabrowser"}
             or sort_name in {"emby", "mediabrowser"}
-            or "emby / jellyfin" in name
+            or "Jellyfin" in name
         ):
             existing = notification
             break
@@ -256,18 +255,18 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
     desired_settings = {
         "name": "Jellyfin",
         "enable": True,
-        "onGrab": False,
+        "onGrab": True,
         "onDownload": True,
         "onUpgrade": True,
         "onImportComplete": True,
         "onRename": True,
-        "onSeriesAdd": True,
+        "onSeriesAdd": False,
         "onSeriesDelete": True,
         "onEpisodeFileDelete": True,
-        "onEpisodeFileDeleteForUpgrade": False,
+        "onEpisodeFileDeleteForUpgrade": True,
         "onHealthIssue": False,
-        "onHealthRestored": True,
-        "onApplicationUpdate": False,
+        "onHealthRestored": False,
+        "onApplicationUpdate": True,
         "onManualInteractionRequired": False,
         "includeHealthWarnings": False,
     }
@@ -276,9 +275,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         log("Fetching notification schema...")
         try:
             schemas = api_get("/api/v3/notification/schema", api_key)
-        except Exception:
-            log("WARNING: Could not fetch notification schemas.")
-            return
+        except Exception as error:
+            raise RuntimeError("Could not fetch notification schemas.") from error
 
         notification_schema = None
         for schema in schemas:
@@ -288,20 +286,20 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
             if (
                 implementation in {"emby", "mediabrowser"}
                 or sort_name in {"emby", "mediabrowser"}
-                or "emby / jellyfin" in name
+                or "Jellyfin" in name
             ):
                 notification_schema = schema
                 break
 
         if notification_schema is None:
-            log("WARNING: Emby/Jellyfin notification schema not found.")
-            return
+            raise RuntimeError("Emby/Jellyfin notification schema not found.")
 
         fields = notification_schema.get("fields", [])
         for field_name, field_value in desired_fields.items():
             if not set_field_value(fields, field_name, field_value):
-                log(f"WARNING: Notification schema missing expected field '{field_name}'.")
-                return
+                raise RuntimeError(
+                    f"Notification schema missing expected field '{field_name}'."
+                )
         for setting_name, setting_value in desired_settings.items():
             notification_schema[setting_name] = setting_value
 
@@ -309,8 +307,8 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         try:
             api_post("/api/v3/notification", notification_schema, api_key)
             log("Jellyfin notification added.")
-        except Exception:
-            log("WARNING: Could not add Jellyfin notification.")
+        except Exception as error:
+            raise RuntimeError("Could not add Jellyfin notification.") from error
         return
 
     fields = existing.get("fields", [])
@@ -319,8 +317,9 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
         current_value = get_field_value(fields, field_name)
         if not field_value_matches(field_name, current_value, desired_value):
             if not set_field_value(fields, field_name, desired_value):
-                log(f"WARNING: Existing notification missing expected field '{field_name}'.")
-                return
+                raise RuntimeError(
+                    f"Existing notification missing expected field '{field_name}'."
+                )
             needs_update = True
 
     if notification_needs_update(existing, desired_settings):
@@ -334,15 +333,14 @@ def upsert_jellyfin_notification(api_key, jellyfin_api_key, jellyfin_host, jelly
 
     existing_id = existing.get("id")
     if not existing_id:
-        log("WARNING: Existing Jellyfin notification has no id; cannot update.")
-        return
+        raise RuntimeError("Existing Jellyfin notification has no id; cannot update.")
 
     log("Updating Jellyfin notification...")
     try:
         api_put(f"/api/v3/notification/{existing_id}", existing, api_key)
         log("Jellyfin notification updated.")
-    except Exception:
-        log("WARNING: Could not update Jellyfin notification.")
+    except Exception as error:
+        raise RuntimeError("Could not update Jellyfin notification.") from error
 
 
 def add_root_folder(api_key):
@@ -367,7 +365,7 @@ def add_root_folder(api_key):
         log(f"WARNING: Could not add root folder '{root_folder_path}'.")
 
 
-def main():
+def run_init():
     api_key = os.environ.get("SONARR__AUTH__APIKEY", "")
     if not api_key:
         log("ERROR: SONARR__AUTH__APIKEY is not set. Aborting.")
@@ -394,8 +392,28 @@ def main():
     log("Init complete.")
 
 
+def main():
+    max_attempts = int(os.environ.get("INIT_CONFIG_RETRIES", "6"))
+    retry_delay = float(os.environ.get("INIT_CONFIG_RETRY_DELAY", "20"))
+
+    for attempt in range(1, max_attempts + 1):
+        log(f"Running configuration attempt {attempt}/{max_attempts}...")
+        try:
+            run_init()
+            return
+        except Exception as err:
+            log(f"Attempt {attempt}/{max_attempts} failed: {err}")
+            if attempt < max_attempts:
+                time.sleep(retry_delay)
+
+    log(f"ERROR: Configuration failed after {max_attempts} attempts.")
+    sys.exit(1)
+
+
 if __name__ == "__main__":
-    if os.fork() == 0:
+    if os.environ.get("INIT_CONFIG_FOREGROUND") == "true":
+        main()
+    elif os.fork() == 0:
         try:
             main()
         except Exception:
